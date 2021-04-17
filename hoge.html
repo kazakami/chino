@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+
+<body>
+    <!-- <svg>
+        <polygon onclick="alert('hoge')" points="100,10 40,198 190,78 10,78 160,198"
+            style="fill:lime;stroke:purple;stroke-width:5;fill-rule:nonzero;" />
+    </svg> -->
+    <div id="app">
+        <svg width="400" height="300">
+            <node
+                v-for="node in nodes"
+                v-bind:key="node.key"
+                v-bind:stl="node.style"
+                v-bind:x="node.x"
+                v-bind:y="node.y"
+                v-bind:rx="node.rx"
+                v-bind:ry="node.ry"
+                v-bind:width="node.width"
+                v-bind:height="node.height"
+                v-on:cl="node.f()"/>
+        </svg>
+    </div>
+    <script src="dist/hoge.js"></script>
+</body>

@@ -1,0 +1,25 @@
+{
+  "name": "kazakami",
+  "version": "0.0.1",
+  "description": "CHat of Interactive NOde",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vue/cli": "^4.5.12",
+    "css-loader": "^5.2.2",
+    "style-loader": "^2.0.0",
+    "ts-loader": "^8.1.0",
+    "typescript": "^4.2.4",
+    "vue": "^2.6.12",
+    "vue-loader": "^15.9.6",
+    "vue-template-compiler": "^2.6.12",
+    "webpack": "^5.33.2",
+    "webpack-cli": "^4.6.0"
+  }
+}
