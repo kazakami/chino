@@ -14,11 +14,15 @@ namespace kzkm
     {
         public nodeView: NodeView | null = null;
         public id: number;
-        public inputEdges: Edge[] = [];
-        public outputEdges: Edge[] = [];
-        constructor()
+        public inputEdges: Edge[][] = [];
+        public outputEdges: Edge[][] = [];
+        constructor(public inputCount: number, public outputCount: number)
         {
             this.id = nodeId++;
+            for (var i = 0; i < inputCount; i++)
+                this.inputEdges.push([]);
+            for (var i = 0; i < outputCount; i++)
+                this.outputEdges.push([]);
         }
     }
 
@@ -33,11 +37,13 @@ namespace kzkm
         public id: number;
         constructor(
             public sourceNode: Node | null,
-            public sinkNode: Node | null)
+            public sourceNodeOutputIndex: number,
+            public sinkNode: Node | null,
+            public sinkNodeInputIndex: number)
         {
             this.id = edgeId++;
-            sourceNode?.outputEdges.push(this);
-            sinkNode?.inputEdges.push(this);
+            sourceNode?.outputEdges[sourceNodeOutputIndex].push(this);
+            sinkNode?.inputEdges[sinkNodeInputIndex].push(this);
         }
     }
 
@@ -75,11 +81,11 @@ namespace kzkm
                 this.y += deltaY;
                 this.prevClientX = e.clientX;
                 this.prevClientY = e.clientY;
-                this.node?.inputEdges.forEach(edge =>
+                this.node?.inputEdges.flat().forEach(edge =>
                 {
                     edge.edgeView?.UpdatePathData();
                 });
-                this.node?.outputEdges.forEach(edge =>
+                this.node?.outputEdges.flat().forEach(edge =>
                 {
                     edge.edgeView?.UpdatePathData();
                 });
@@ -116,19 +122,24 @@ namespace kzkm
         }
         public UpdatePathData()
         {
-            var startX = this.edge?.sourceNode?.nodeView?.x ?? 10;
-            var startY = this.edge?.sourceNode?.nodeView?.y ?? 10;
-            var endX = this.edge?.sinkNode?.nodeView?.x ?? 10;
-            var endY = this.edge?.sinkNode?.nodeView?.y ?? 10;
-            var controllX = startX + 50;
-            var controllY = startY;
-            console.log(startX, startY,endX, endY);
-            this.startX = startX;
-            this.startY = startY;
-            this.endX = endX;
-            this.endY = endY;
-            this.controllX = controllX;
-            this.controllY = controllY;
+            var sourceNodeX = this.edge?.sourceNode?.nodeView?.x ?? 10;
+            var sourceNodeY = this.edge?.sourceNode?.nodeView?.y ?? 10;
+            var sourceNodeWidth = this.edge?.sourceNode?.nodeView?.width ?? 10;
+            var sourceNodeHeight = this.edge?.sourceNode?.nodeView?.height ?? 10;
+            var sourceNodeOutputCount = this.edge?.sourceNode?.outputCount ?? 10;
+            var sourceNodeOutputIndex = this.edge?.sourceNodeOutputIndex ?? 0;
+            var sinkNodeX = this.edge?.sinkNode?.nodeView?.x ?? 10;
+            var sinkNodeY = this.edge?.sinkNode?.nodeView?.y ?? 10;
+            var sinkNodeWidth = this.edge?.sinkNode?.nodeView?.width ?? 10;
+            var sinkNodeHeight = this.edge?.sinkNode?.nodeView?.height ?? 10;
+            var sinkNodeInputCount = this.edge?.sinkNode?.inputCount ?? 10;
+            var sinkNodeInputIndex = this.edge?.sinkNodeInputIndex ?? 0;
+            this.startX = sourceNodeX + sourceNodeWidth;
+            this.startY = sourceNodeY + sourceNodeHeight * ((sourceNodeOutputIndex + 1) / (sourceNodeOutputCount + 1));
+            this.endX = sinkNodeX;
+            this.endY = sinkNodeY + sinkNodeHeight * ((sinkNodeInputIndex + 1) / (sinkNodeInputCount + 1));
+            this.controllX = this.startX + 50;
+            this.controllY = this.startY;
             this.SetD();
         }
     }
@@ -174,15 +185,16 @@ function MakeEdgeView(edge: kzkm.Edge): kzkm.EdgeView
 
 var nodes: kzkm.Node[] =
 [
-    new kzkm.Node(),
-    new kzkm.Node(),
+    new kzkm.Node(0, 1),
+    new kzkm.Node(0, 1),
+    new kzkm.Node(2, 0),
 ];
 
 var edges: kzkm.Edge[] =
 [
-    new kzkm.Edge(nodes[0], nodes[1]),
+    new kzkm.Edge(nodes[0], 0, nodes[2], 0),
+    new kzkm.Edge(nodes[1], 0, nodes[2], 1),
 ];
-console.log(nodes);
 
 var nodeViews = nodes.map((element, index) => {
     return MakeNodeView(element, 10 + index *10, 20 + index * 10);
