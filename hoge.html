@@ -19,8 +19,11 @@
             />
         </svg>
     </div>
+    <div id="app3">
+        <node-editor v-bind:prop="node"/>
+    </div>
     <div id="app2">
-        <p>{{ code }}</p>
+        <div>{{ code }}</div>
         <button v-on:click="generate">code generate</button>
     </div>
     <script src="dist/hoge.js"></script>

@@ -24,6 +24,10 @@ namespace kzkm
             for (var i = 0; i < outputCount; i++)
                 this.outputEdges.push([]);
         }
+        public Description(): string
+        {
+            return "None";
+        }
     }
 
     export class OutputNode extends Node
@@ -32,7 +36,36 @@ namespace kzkm
         {
             super(1, 0);
         }
+        public Description()
+        {
+            return "Output node";
+        }
     }
+
+    export class PlusNode extends Node
+    {
+        constructor()
+        {
+            super (2, 1);
+        }
+        public Description()
+        {
+            return "Plus node";
+        }
+    }
+
+    export class ConstantNode extends Node
+    {
+        constructor(public value: [number, number, number, number])
+        {
+            super(0, 1);
+        }
+        public Description()
+        {
+            return `Constant node: vec4(${this.value[0]}, ${this.value[1]}, ${this.value[2]}, ${this.value[3]})`;
+        }
+    }
+
     var edgeId = 0;
     export class Edge
     {
@@ -66,6 +99,7 @@ namespace kzkm
         }
         public mousedown = (e: MouseEvent) =>
         {
+            ChangeSelectedNode(this.id);
             this.prevClientX = e.clientX;
             this.prevClientY = e.clientY;
             this.dragging = true;
@@ -171,9 +205,38 @@ Vue.component('edge', {
             :stroke="prop.stroke"\
         />'
 })
+
+Vue.component('node-editor', {
+    props: ['prop'],
+    template: '\
+        <div>\
+            <p>Node id: {{ prop.id }}</p>\
+            <p>Description: {{ prop.Description() }}</p>\
+            <input />\
+        </div>\
+    '
+})
+
+function GetNodeColor(node: kzkm.Node | null): string
+{
+    if (node === null)
+        return "red";
+    var color = "green";
+    if (node instanceof kzkm.OutputNode)
+    {
+        color = "blue";
+    }
+    else if (node instanceof kzkm.ConstantNode)
+    {
+        color = "gray"
+    }
+    return color;
+}
+
 function MakeNodeView(node: kzkm.Node, x: number, y: number): kzkm.NodeView
 {
-    var nodeView = new kzkm.NodeView(node, node.id, x, y, 5, 5, 100, 50, "fill:red;stroke:black;stroke-width:2");
+    var style = `fill:${GetNodeColor(node)};stroke:black;stroke-width:2`;
+    var nodeView = new kzkm.NodeView(node, node.id, x, y, 5, 5, 100, 50, style);
     node.nodeView = nodeView;
     return nodeView;
 }
@@ -188,16 +251,20 @@ function MakeEdgeView(edge: kzkm.Edge): kzkm.EdgeView
 
 var nodes: kzkm.Node[] =
 [
-    new kzkm.Node(0, 1),
-    new kzkm.Node(0, 1),
-    new kzkm.Node(2, 0),
+    new kzkm.ConstantNode([0.1, 0.5, 0.2, 1]),
+    new kzkm.ConstantNode([0.3, 0.2, 0.7, 1]),
+    new kzkm.PlusNode(),
+    new kzkm.OutputNode(),
 ];
 
 var edges: kzkm.Edge[] =
 [
     new kzkm.Edge(nodes[0], 0, nodes[2], 0),
     new kzkm.Edge(nodes[1], 0, nodes[2], 1),
+    new kzkm.Edge(nodes[2], 0, nodes[3], 0),
 ];
+
+var selectedNodeIndex = 3;
 
 var nodeViews = nodes.map((element, index) => {
     return MakeNodeView(element, 10 + index *10, 20 + index * 10);
@@ -219,20 +286,64 @@ var app = new Vue({
     }
 })
 
+function GenerateCode(node: kzkm.Node | null): string
+{
+    if (node instanceof kzkm.OutputNode)
+    {
+        return `
+        void main() {
+            vec4 variable_${ node.id } = ${ GenerateCode(node.inputEdges[0][0].sourceNode) };
+            gl_FragColor = variable_${ node.id };
+        }
+        `;
+    }
+    else if (node instanceof kzkm.PlusNode)
+    {
+        return `${GenerateCode(node.inputEdges[0][0].sourceNode)} + ${GenerateCode(node.inputEdges[1][0].sourceNode)}`;
+    }
+    else if (node instanceof kzkm.ConstantNode)
+    {
+        return `vec4(${node.value[0]}, ${node.value[1]}, ${node.value[2]}, ${node.value[3]})`;
+    }
+    else if (node instanceof kzkm.Node)
+    {
+        return "";
+    }
+    return "";
+}
+
 var app2 = new Vue({
    el: '#app2',
    data:
    {
-       code: 'hoge',
+       code: '',
    },
    methods:
    {
        generate: function ()
        {
-           this.code = "moji";
+           var node = nodes.filter(n => n instanceof kzkm.OutputNode)[0];
+           this.code = GenerateCode(node);
        }
    }
 });
+
+var app3= new Vue({
+   el: '#app3',
+   data:
+   {
+       node: nodes[selectedNodeIndex]
+   },
+   methods: {}
+});
+
+function ChangeSelectedNode(index: number)
+{
+    nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:black;stroke-width:2`;
+    selectedNodeIndex = index;
+    app3.$data.node = nodes[index];
+    nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:red;stroke-width:4`;
+}
 
 //setInterval(() => { nodes[0].x += 1; }, 16);
 // setInterval(() => { edges[0].endY += 1; edges[0].SetD(); }, 16);
