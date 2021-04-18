@@ -28,7 +28,10 @@ namespace kzkm
 
     export class OutputNode extends Node
     {
-
+        constructor()
+        {
+            super(1, 0);
+        }
     }
     var edgeId = 0;
     export class Edge
@@ -215,6 +218,21 @@ var app = new Vue({
         func: () => { alert("hoge") }
     }
 })
+
+var app2 = new Vue({
+   el: '#app2',
+   data:
+   {
+       code: 'hoge',
+   },
+   methods:
+   {
+       generate: function ()
+       {
+           this.code = "moji";
+       }
+   }
+});
 
 //setInterval(() => { nodes[0].x += 1; }, 16);
 // setInterval(() => { edges[0].endY += 1; edges[0].SetD(); }, 16);

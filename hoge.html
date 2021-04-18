@@ -2,10 +2,6 @@
 <meta charset="UTF-8">
 
 <body>
-    <!-- <svg>
-        <polygon onclick="alert('hoge')" points="100,10 40,198 190,78 10,78 160,198"
-            style="fill:lime;stroke:purple;stroke-width:5;fill-rule:nonzero;" />
-    </svg> -->
     <div id="app">
         <svg width="600" height="400">
             <node
@@ -22,6 +18,10 @@
                 v-bind:prop="edge"
             />
         </svg>
+    </div>
+    <div id="app2">
+        <p>{{ code }}</p>
+        <button v-on:click="generate">code generate</button>
     </div>
     <script src="dist/hoge.js"></script>
 </body>
