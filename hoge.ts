@@ -42,15 +42,16 @@ namespace kzkm
         }
     }
 
-    export class PlusNode extends Node
+    export class BinOpeNode extends Node
     {
-        constructor()
+        
+        constructor(public ope: string)
         {
             super (2, 1);
         }
         public Description()
         {
-            return "Plus node";
+            return "BinOpe node";
         }
     }
 
@@ -206,23 +207,39 @@ Vue.component('edge', {
         />'
 })
 
-Vue.component('node-editor1', {
+Vue.component('node-editor-ConstantNode', {
     props: ['prop'],
     template: '\
         <div>\
             <p>Node id: {{ prop.id }}</p>\
             <p>Description: {{ prop.Description() }}</p>\
-            <input />\
+            <input v-model="prop.value[0]"/>\
+            <input v-model="prop.value[1]"/>\
+            <input v-model="prop.value[2]"/>\
+            <input v-model="prop.value[3]"/>\
         </div>\
     '
 })
-Vue.component('node-editor2', {
+Vue.component('node-editor-BinOpeNode', {
     props: ['prop'],
     template: '\
         <div>\
             <p>Node id: {{ prop.id }}</p>\
             <p>Description: {{ prop.Description() }}</p>\
-            <button>あいうえお</button>\
+            <select v-model="prop.ope">\
+                <option value="+">+</option>\
+                <option value="-">-</option>\
+            </select>\
+        </div>\
+    '
+})
+Vue.component('node-editor-OutputNode', {
+    props: ['prop'],
+    template: '\
+        <div>\
+            <p>Node id: {{ prop.id }}</p>\
+            <p>Description: {{ prop.Description() }}</p>\
+            type is vec4\
         </div>\
     '
 })
@@ -263,7 +280,7 @@ var nodes: kzkm.Node[] =
 [
     new kzkm.ConstantNode([0.1, 0.5, 0.2, 1]),
     new kzkm.ConstantNode([0.3, 0.2, 0.7, 1]),
-    new kzkm.PlusNode(),
+    new kzkm.BinOpeNode("+"),
     new kzkm.OutputNode(),
 ];
 
@@ -307,9 +324,9 @@ function GenerateCode(node: kzkm.Node | null): string
         }
         `;
     }
-    else if (node instanceof kzkm.PlusNode)
+    else if (node instanceof kzkm.BinOpeNode)
     {
-        return `${GenerateCode(node.inputEdges[0][0].sourceNode)} + ${GenerateCode(node.inputEdges[1][0].sourceNode)}`;
+        return `${GenerateCode(node.inputEdges[0][0].sourceNode)} ${node.ope} ${GenerateCode(node.inputEdges[1][0].sourceNode)}`;
     }
     else if (node instanceof kzkm.ConstantNode)
     {
@@ -343,7 +360,7 @@ var app3= new Vue({
    data:
    {
        node: nodes[selectedNodeIndex],
-       editor: "node-editor2",
+       editor: "node-editor-" + nodes[selectedNodeIndex].constructor.name,
    },
    methods: {}
 });
@@ -353,7 +370,7 @@ function ChangeSelectedNode(index: number)
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:black;stroke-width:2`;
     selectedNodeIndex = index;
     app3.$data.node = nodes[index];
-    app3.$data.editor = "node-editor" + (index % 2 + 1);
+    app3.$data.editor = "node-editor-" + nodes[index].constructor.name;
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:red;stroke-width:4`;
 }
 
