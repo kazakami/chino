@@ -206,13 +206,23 @@ Vue.component('edge', {
         />'
 })
 
-Vue.component('node-editor', {
+Vue.component('node-editor1', {
     props: ['prop'],
     template: '\
         <div>\
             <p>Node id: {{ prop.id }}</p>\
             <p>Description: {{ prop.Description() }}</p>\
             <input />\
+        </div>\
+    '
+})
+Vue.component('node-editor2', {
+    props: ['prop'],
+    template: '\
+        <div>\
+            <p>Node id: {{ prop.id }}</p>\
+            <p>Description: {{ prop.Description() }}</p>\
+            <button>あいうえお</button>\
         </div>\
     '
 })
@@ -332,7 +342,8 @@ var app3= new Vue({
    el: '#app3',
    data:
    {
-       node: nodes[selectedNodeIndex]
+       node: nodes[selectedNodeIndex],
+       editor: "node-editor2",
    },
    methods: {}
 });
@@ -342,6 +353,7 @@ function ChangeSelectedNode(index: number)
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:black;stroke-width:2`;
     selectedNodeIndex = index;
     app3.$data.node = nodes[index];
+    app3.$data.editor = "node-editor" + (index % 2 + 1);
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:red;stroke-width:4`;
 }
 

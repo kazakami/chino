@@ -4,6 +4,11 @@
 <body>
     <div id="app">
         <svg width="600" height="400">
+            <edge
+                v-for="edge in edges"
+                v-bind:key="edge.key"
+                v-bind:prop="edge"
+            />
             <node
                 v-for="node in nodes"
                 v-bind:key="node.key"
@@ -12,15 +17,10 @@
                 v-on:mouseup="node.mouseup($event)"
                 v-on:mousemove="node.mousemove($event)"
             />
-            <edge
-                v-for="edge in edges"
-                v-bind:key="edge.key"
-                v-bind:prop="edge"
-            />
         </svg>
     </div>
     <div id="app3">
-        <node-editor v-bind:prop="node"/>
+        <component v-bind:is="editor" v-bind:prop="node"/>
     </div>
     <div id="app2">
         <div>{{ code }}</div>
