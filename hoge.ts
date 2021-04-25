@@ -1,4 +1,6 @@
-import Vue from "vue"
+import Vue from "vue";
+import * as nene from "nene-engine.ts";
+import * as THREE from "three";
 
 namespace kzkm
 {
@@ -339,21 +341,6 @@ function GenerateCode(node: kzkm.Node | null): string
     return "";
 }
 
-var app2 = new Vue({
-   el: '#app2',
-   data:
-   {
-       code: '',
-   },
-   methods:
-   {
-       generate: function ()
-       {
-           var node = nodes.filter(n => n instanceof kzkm.OutputNode)[0];
-           this.code = GenerateCode(node);
-       }
-   }
-});
 
 var app3= new Vue({
    el: '#app3',
@@ -373,6 +360,84 @@ function ChangeSelectedNode(index: number)
     app3.$data.editor = "node-editor-" + nodes[index].constructor.name;
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:red;stroke-width:4`;
 }
+
+const fshd = `void main() {
+    gl_FragColor = vec4(0.5, 0.3 + 0.3 * sin(gl_FragCoord.x / 15.0), 0.3 + 0.3 * sin(gl_FragCoord.y / 10.0), 1.0);
+}`;
+const vshd = `void main() {
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+class Ball extends nene.Unit
+{
+    public ball: THREE.Object3D;
+    public shaderMat: THREE.ShaderMaterial = new THREE.ShaderMaterial({
+        fragmentShader: fshd,
+        vertexShader: vshd,
+    });
+    public Init()
+    {
+        const geo=new THREE.SphereBufferGeometry(4, 20, 20);
+        
+        this.ball = new THREE.Mesh(geo, this.shaderMat);
+        this.ball.position.set(0, 0, 0);
+        this.AddObject(this.ball);
+    }
+}
+
+var ballUnit = new Ball();
+
+
+
+class InitScene extends nene.Scene
+{
+    public Init()
+    {
+        this.backgroundColor = new THREE.Color(0x123456);
+        this.AddUnit(ballUnit);
+        this.camera.position.set(15, 15, 15);
+        this.camera.lookAt(0, 0, 0);
+        // ヘルパ追加
+        const worldAxesHelper = new THREE.AxesHelper(100);
+        worldAxesHelper.name = "helper";
+        this.scene.add(worldAxesHelper);
+        const worldGridHelper = new THREE.GridHelper(50, 10, 0x0000ff, 0x808080);
+        worldGridHelper.name = "helper";
+        this.scene.add(worldGridHelper);
+        const loaclAxesHelper = new THREE.AxesHelper(100);
+        loaclAxesHelper.name = "helper";
+        this.scene.add(loaclAxesHelper);
+    }
+    public Update()
+    {
+    }
+}
+var app2 = new Vue({
+    el: '#app2',
+    data:
+    {
+        code: '',
+    },
+    methods:
+    {
+        generate: function ()
+        {
+            var node = nodes.filter(n => n instanceof kzkm.OutputNode)[0];
+            this.code = GenerateCode(node);
+            ballUnit.shaderMat.fragmentShader = this.code;
+            ballUnit.shaderMat.needsUpdate = true;
+        }
+    }
+ });
+ 
+
+nene.Start("init", new InitScene(),
+    {
+        parent: document.getElementById("screen"),
+        screenSizeX: 320,
+        screenSizeY: 240
+    }
+)
 
 //setInterval(() => { nodes[0].x += 1; }, 16);
 // setInterval(() => { edges[0].endY += 1; edges[0].SetD(); }, 16);
