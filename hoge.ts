@@ -69,6 +69,18 @@ namespace kzkm
         }
     }
 
+    export class FragCoordNode extends Node
+    {
+        constructor()
+        {
+            super(0, 1);
+        }
+        public Description()
+        {
+            return "vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0)";
+        }
+    }
+
     var edgeId = 0;
     export class Edge
     {
@@ -231,11 +243,22 @@ Vue.component('node-editor-BinOpeNode', {
             <select v-model="prop.ope">\
                 <option value="+">+</option>\
                 <option value="-">-</option>\
+                <option value="*">*</option>\
             </select>\
         </div>\
     '
 })
 Vue.component('node-editor-OutputNode', {
+    props: ['prop'],
+    template: '\
+        <div>\
+            <p>Node id: {{ prop.id }}</p>\
+            <p>Description: {{ prop.Description() }}</p>\
+            type is vec4\
+        </div>\
+    '
+})
+Vue.component('node-editor-FragCoordNode', {
     props: ['prop'],
     template: '\
         <div>\
@@ -257,7 +280,11 @@ function GetNodeColor(node: kzkm.Node | null): string
     }
     else if (node instanceof kzkm.ConstantNode)
     {
-        color = "gray"
+        color = "gray";
+    }
+    else if (node instanceof kzkm.FragCoordNode)
+    {
+        color = "yellow";
     }
     return color;
 }
@@ -281,7 +308,7 @@ function MakeEdgeView(edge: kzkm.Edge): kzkm.EdgeView
 var nodes: kzkm.Node[] =
 [
     new kzkm.ConstantNode([0.1, 0.5, 0.2, 1]),
-    new kzkm.ConstantNode([0.3, 0.2, 0.7, 1]),
+    new kzkm.FragCoordNode(),
     new kzkm.BinOpeNode("+"),
     new kzkm.OutputNode(),
 ];
@@ -333,6 +360,10 @@ function GenerateCode(node: kzkm.Node | null): string
     else if (node instanceof kzkm.ConstantNode)
     {
         return `vec4(${node.value[0]}, ${node.value[1]}, ${node.value[2]}, ${node.value[3]})`;
+    }
+    else if (node instanceof kzkm.FragCoordNode)
+    {
+        return "vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0)";
     }
     else if (node instanceof kzkm.Node)
     {
