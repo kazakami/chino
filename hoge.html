@@ -3,7 +3,12 @@
 
 <body>
     <div id="app">
-        <svg width="600" height="400">
+        <svg width="600" height="200">
+            <defs>
+                <marker id="arrow" markerUnits="strokeWidth" markerWidth="10" markerHeight="10"  refX="5" refY="5" viewBox="0 0 10 10">
+                    <polygon points="0,0 2,5 0,10 10,5"></polygon>
+                </marker>
+            </defs>
             <edge
                 v-for="edge in edges"
                 v-bind:key="edge.key"
