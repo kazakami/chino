@@ -77,6 +77,7 @@ export module kzkmComponent
                     :stroke="prop.stroke"\
                     stroke-width="2"\
                     marker-end="url(#arrow)"\
+                    v-on:click="$emit(\'click\', $event)"\
                 />'
         });
         Vue.component('node-editor-ConstantNode', {

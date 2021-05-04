@@ -13,6 +13,7 @@
                 v-for="edge in edgeViews"
                 v-bind:key="edge.key"
                 v-bind:prop="edge"
+                v-on:click="edge.click"
             />
             <node
                 v-for="node in nodeViews"
@@ -20,10 +21,12 @@
                 v-bind:prop="node"
                 v-on:mousedown="node.mousedown($event)"
                 v-on:mouseup="node.mouseup($event)"
-                v-on:mousemove="node.mousemove($event)"
             />
         </svg>
     </div>
+    <button type="button" id="glCoord">Add gl_Coord</button>
+    <button type="button" id="const">Add Constant</button>
+    <button type="button" id="binOpe">Add Bin Operator</button>
     <div id="screen"></div>
     <div id="app3">
         <component v-bind:is="editor" v-bind:prop="node"/>

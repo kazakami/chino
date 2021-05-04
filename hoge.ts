@@ -44,28 +44,46 @@ function MakeEdgeView(edge: kzkm.Edge): kzkm.EdgeView
 
 var nodes: kzkm.Node[] =
 [
-    new kzkm.ConstantNode([0.1, 0.5, 0.2, 1]),
-    new kzkm.FragCoordNode(),
-    new kzkm.BinOpeNode("+"),
+    // new kzkm.ConstantNode([0.1, 0.5, 0.2, 1]),
+    // new kzkm.FragCoordNode(),
+    // new kzkm.BinOpeNode("+"),
     new kzkm.OutputNode(),
 ];
+var selectedNodeIndex = 0;
 
 var edges: kzkm.Edge[] =
 [
-    //new kzkm.Edge(nodes[0], 0, nodes[2], 0),
-    //new kzkm.Edge(nodes[1], 0, nodes[2], 1),
-    //new kzkm.Edge(nodes[2], 0, nodes[3], 0),
+    // new kzkm.Edge(nodes[0], 0, nodes[2], 0),
+    // new kzkm.Edge(nodes[1], 0, nodes[2], 1),
+    // new kzkm.Edge(nodes[2], 0, nodes[3], 0),
 ];
 
-var selectedNodeIndex = 3;
-
 var nodeViews = nodes.map((element, index) => {
-    return MakeNodeView(element, 10 + index *10, 20 + index * 10);
+    return MakeNodeView(element, 50 + index *10, 60 + index * 10);
 });
 
 var edgeViews = edges.map((element, index) => {
     return MakeEdgeView(element);
 });
+
+function AddNode(node: kzkm.Node)
+{
+    nodes.push(node);
+    nodeViews.push(MakeNodeView(node, 10, 20));
+}
+
+const glCoordButton = document.getElementById("glCoord");
+const constButton = document.getElementById("const");
+const binOpeButton = document.getElementById("binOpe");
+glCoordButton.onclick = () => {
+    AddNode(new kzkm.FragCoordNode());
+};
+constButton.onclick = () => {
+    AddNode(new kzkm.ConstantNode([0.1, 0.2, 0.3, 1]));
+};
+binOpeButton.onclick = () => {
+    AddNode(new kzkm.BinOpeNode("+"));
+};
 
 var app = new Vue({
     el: '#app',
@@ -81,13 +99,10 @@ var app = new Vue({
     }
 });
 
+document.getElementById("app").oncontextmenu = () => { return false; };
+
 kzkm.SetEditor(app);
 
-/*
-document.getElementById("app").addEventListener("mousemove", (e) =>
-{
-});
-*/
 
 function Sort(nodes :kzkm.Node[], edges: kzkm.Edge[]): number[]
 {
@@ -275,5 +290,5 @@ nene.Start("init", new InitScene(),
     }
 )
 
-//setInterval(() => { nodes[0].x += 1; }, 16);
+// setInterval(() => { nodes[0].x += 1; }, 16);
 // setInterval(() => { edges[0].endY += 1; edges[0].SetD(); }, 16);

@@ -141,21 +141,40 @@ export module kzkm
         else
             editingEdge.Update(x, y);
     }
+    // 何故か初回のクリック時に即座に SetEdge が呼ばれるのでその対策
+    var preventInitialSetEdge = false;
     function SetEdge(e: MouseEvent)
     {
-        const x = e.offsetX;
-        const y = e.offsetY;
-        const nearestPortView = GetNearestTargetPort(x, y);
-        if (nearestPortView !== null)
+        if (preventInitialSetEdge === true)
+        {
+            preventInitialSetEdge = false;
+            return;
+        }
+        if (e.button == 2)
         {
             vueInstance.$data.edgeViews = vueInstance.$data.edgeViews.filter(e => e !== editingEdge);
             editingEdge = null;
             const app = document.getElementById("app");
             app.removeEventListener("mousemove", EditingEdgeMove);
             app.removeEventListener("mousedown", SetEdge);
+            return;
+        }
+        const x = e.offsetX;
+        const y = e.offsetY;
+        const nearestPortView = GetNearestTargetPort(x, y);
+        if (nearestPortView !== null)
+        {
+            vueInstance.$data.edgeViews = vueInstance.$data.edgeViews.filter(e => e !== editingEdge);
+            const app = document.getElementById("app");
+            app.removeEventListener("mousemove", EditingEdgeMove);
+            app.removeEventListener("mousedown", SetEdge);
             var edges: Edge[] = vueInstance.$data.edges;
             var edgeViews: EdgeView[] = vueInstance.$data.edgeViews;
-            var edge = new Edge(startPort.nodeView.node, startPort.portNumber, nearestPortView.nodeView.node, nearestPortView.portNumber);
+            if (editingEdge instanceof EditingEdgeViewSourcing)
+                var edge = new Edge(startPort.nodeView.node, startPort.portNumber, nearestPortView.nodeView.node, nearestPortView.portNumber);
+            else
+                var edge = new Edge(nearestPortView.nodeView.node, nearestPortView.portNumber, startPort.nodeView.node, startPort.portNumber);
+            editingEdge = null;
             startPort.isLinked = true;
             nearestPortView.isLinked = true;
             var edgeView = new kzkm.EdgeView(edge);
@@ -164,7 +183,6 @@ export module kzkm
             edge.edgeView = edgeView;
             edges.push(edge);
             edgeViews.push(edgeView);
-            
         }
     }
 
@@ -186,10 +204,14 @@ export module kzkm
             if (editingEdge === null && vueInstance !== null)
             {
                 const app = document.getElementById("app");
-                app.addEventListener("mousemove", EditingEdgeMove);
-                app.addEventListener("mousedown", SetEdge);
+                preventInitialSetEdge = true;
+                app.addEventListener("mousemove", EditingEdgeMove, false);
+                app.addEventListener("mousedown", SetEdge, false);
                 startPort = this;
-                editingEdge = new EditingEdgeView(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                if (this.directional === "output")
+                    editingEdge = new EditingEdgeViewSourcing(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                else
+                    editingEdge = new EditingEdgeViewSinking(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
                 editingEdge.Update(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
                 vueInstance.$data.edgeViews.push(editingEdge);
                 const nodes: NodeView[] = vueInstance.$data.nodeViews;
@@ -320,9 +342,18 @@ export module kzkm
             this.controllY = this.startY;
             this.SetD();
         }
+        public click()
+        {
+            console.log("ec");
+        }
     }
 
-    class EditingEdgeView extends EdgeView
+    abstract class EditingEdgeView extends EdgeView
+    {
+        public abstract Update(x: number, y: number);
+    }
+    // ソースから伸びる
+    class EditingEdgeViewSourcing extends EdgeView
     {
         constructor(x: number, y: number)
         {
@@ -335,6 +366,30 @@ export module kzkm
         {
             this.endX = x;
             this.endY = y;
+            var centerX = (this.startX + this.endX) / 2;
+            var centerY = (this.startY + this.endY) / 2;
+            this.controllX = this.startX + 50;
+            this.controllY = this.startY;
+            this.d = `M ${this.startX} ${this.startY} `
+                   + `Q ${this.controllX} ${this.controllY}, `
+                   + `${centerX} ${centerY} `
+                   + `T ${this.endX} ${this.endY}`;
+        }
+    }
+    // シンクから伸びる
+    class EditingEdgeViewSinking extends EdgeView
+    {
+        constructor(x: number, y: number)
+        {
+            super(null);
+            this.endX = x;
+            this.endY = y;
+            this.stroke = "red";
+        }
+        public Update(x: number, y: number)
+        {
+            this.startX = x;
+            this.startY = y;
             var centerX = (this.startX + this.endX) / 2;
             var centerY = (this.startY + this.endY) / 2;
             this.controllX = this.startX + 50;
