@@ -1,3 +1,5 @@
+import Vue from "vue";
+
 export module kzkm
 {
     export enum VarType
@@ -96,17 +98,116 @@ export module kzkm
         }
     }
 
-    type Port =
+    var vueInstance: Vue = null;
+    export function SetEditor(instance: Vue)
     {
-        id: string,
-        cx: number,
-        cy: number,
-        r: number,
+        vueInstance = instance;
+    }
+    var editingEdge: EditingEdgeView = null;
+    var startPort: PortView;
+    var targetPorts: PortView[];
+    function GetNearestTargetPort(x: number, y: number): PortView | null
+    {
+        type Position =
+        {
+            portView: PortView,
+            distance: number,
+        };
+        var positions: Position[] = [];
+        for (const portView of targetPorts)
+        {
+            const distance = (x - (portView.nodeView.x + portView.cx)) ** 2 
+            + (y - (portView.nodeView.y + portView.cy)) ** 2;
+            if (distance < 500)
+            {
+                positions.push({portView: portView, distance: distance});
+            }
+        }
+        if (positions.length !== 0)
+        {
+            const portView = positions.sort((a, b) => a.distance - b.distance)[0].portView;
+            return portView;
+        }
+        return null;
+    }
+    function EditingEdgeMove(e: MouseEvent)
+    {
+        const x = e.offsetX;
+        const y = e.offsetY;
+        const nearestPortView = GetNearestTargetPort(x, y);
+        if (nearestPortView !== null)
+            editingEdge.Update(nearestPortView.nodeView.x + nearestPortView.cx
+                             , nearestPortView.nodeView.y + nearestPortView.cy);
+        else
+            editingEdge.Update(x, y);
+    }
+    function SetEdge(e: MouseEvent)
+    {
+        const x = e.offsetX;
+        const y = e.offsetY;
+        const nearestPortView = GetNearestTargetPort(x, y);
+        if (nearestPortView !== null)
+        {
+            vueInstance.$data.edgeViews = vueInstance.$data.edgeViews.filter(e => e !== editingEdge);
+            editingEdge = null;
+            const app = document.getElementById("app");
+            app.removeEventListener("mousemove", EditingEdgeMove);
+            app.removeEventListener("mousedown", SetEdge);
+            var edges: Edge[] = vueInstance.$data.edges;
+            var edgeViews: EdgeView[] = vueInstance.$data.edgeViews;
+            var edge = new Edge(startPort.nodeView.node, startPort.portNumber, nearestPortView.nodeView.node, nearestPortView.portNumber);
+            startPort.isLinked = true;
+            nearestPortView.isLinked = true;
+            var edgeView = new kzkm.EdgeView(edge);
+            edgeView.stroke = "blue";
+            edgeView.UpdatePathData();
+            edge.edgeView = edgeView;
+            edges.push(edge);
+            edgeViews.push(edgeView);
+            
+        }
+    }
+
+    class PortView
+    {
+        constructor(
+            public id: string,
+            public cx: number,
+            public cy: number,
+            public r: number,
+            public isLinked: boolean,
+            public directional: "output" | "input",
+            public nodeView: NodeView,
+            public portNumber: number)
+        {
+        }
+        public mousedown(e: MouseEvent)
+        {
+            if (editingEdge === null && vueInstance !== null)
+            {
+                const app = document.getElementById("app");
+                app.addEventListener("mousemove", EditingEdgeMove);
+                app.addEventListener("mousedown", SetEdge);
+                startPort = this;
+                editingEdge = new EditingEdgeView(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                editingEdge.Update(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                vueInstance.$data.edgeViews.push(editingEdge);
+                const nodes: NodeView[] = vueInstance.$data.nodeViews;
+                targetPorts = [];
+                for (const node of nodes)
+                {
+                    if (this.directional === "output")
+                        targetPorts = targetPorts.concat(node.inputPorts);
+                    else
+                        targetPorts = targetPorts.concat(node.outputPorts);
+                }
+            }
+        }
     };
     export class NodeView
     {
-        public inputPorts: Port[] = [];
-        public outputPorts: Port[] = [];
+        public inputPorts: PortView[] = [];
+        public outputPorts: PortView[] = [];
         constructor(
             public node: Node | null,
             public id: number,
@@ -122,17 +223,25 @@ export module kzkm
             if (node === null)
                 return;
             for (var i = 0; i < node.outputCount; i++)
-                this.outputPorts.push({
-                    id: "output" + i,
-                    cx: width,
-                    cy: height*((i + 1) / (node.outputCount + 1)),
-                    r: 5});
+                this.outputPorts.push(new PortView(
+                    "output" + i,
+                    width,
+                    height*((i + 1) / (node.outputCount + 1)),
+                    5,
+                    false,
+                    "output",
+                    this,
+                    i));
             for (var i = 0; i < node.inputCount; i++)
-                this.inputPorts.push({
-                    id: "input" + i,
-                    cx: 0,
-                    cy: height*((i + 1) / (node.inputCount + 1)),
-                    r: 5});
+                this.inputPorts.push(new PortView(
+                    "input" + i,
+                    0,
+                    height*((i + 1) / (node.inputCount + 1)),
+                    5,
+                    false,
+                    "input",
+                    this,
+                    i));
         }
         public mousedown = (e: MouseEvent) =>
         {
@@ -215,6 +324,30 @@ export module kzkm
             this.controllX = this.startX + 50;
             this.controllY = this.startY;
             this.SetD();
+        }
+    }
+
+    class EditingEdgeView extends EdgeView
+    {
+        constructor(x: number, y: number)
+        {
+            super(null);
+            this.startX = x;
+            this.startY = y;
+            this.stroke = "red";
+        }
+        public Update(x: number, y: number)
+        {
+            this.endX = x;
+            this.endY = y;
+            var centerX = (this.startX + this.endX) / 2;
+            var centerY = (this.startY + this.endY) / 2;
+            this.controllX = this.startX + 50;
+            this.controllY = this.startY;
+            this.d = `M ${this.startX} ${this.startY} `
+                   + `Q ${this.controllX} ${this.controllY}, `
+                   + `${centerX} ${centerY} `
+                   + `T ${this.endX} ${this.endY}`;
         }
     }
 }

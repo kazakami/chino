@@ -52,9 +52,9 @@ var nodes: kzkm.Node[] =
 
 var edges: kzkm.Edge[] =
 [
-    new kzkm.Edge(nodes[0], 0, nodes[2], 0),
-    new kzkm.Edge(nodes[1], 0, nodes[2], 1),
-    new kzkm.Edge(nodes[2], 0, nodes[3], 0),
+    //new kzkm.Edge(nodes[0], 0, nodes[2], 0),
+    //new kzkm.Edge(nodes[1], 0, nodes[2], 1),
+    //new kzkm.Edge(nodes[2], 0, nodes[3], 0),
 ];
 
 var selectedNodeIndex = 3;
@@ -70,14 +70,24 @@ var edgeViews = edges.map((element, index) => {
 var app = new Vue({
     el: '#app',
     data: {
-        nodes: nodeViews,
-        edges: edgeViews,
+        nodeViews: nodeViews,
+        edgeViews: edgeViews,
+        nodes: nodes,
+        edges: edges,
     },
     methods:
     {
         func: () => { alert("hoge") }
     }
-})
+});
+
+kzkm.SetEditor(app);
+
+/*
+document.getElementById("app").addEventListener("mousemove", (e) =>
+{
+});
+*/
 
 function Sort(nodes :kzkm.Node[], edges: kzkm.Edge[]): number[]
 {
@@ -187,8 +197,6 @@ function ChangeSelectedNode(index: number)
     app3.$data.editor = "node-editor-" + nodes[index].constructor.name;
     nodeViews[selectedNodeIndex].style = `fill:${GetNodeColor(nodeViews[selectedNodeIndex].node)};stroke:red;stroke-width:4`;
 }
-
-console.log(nodes);
 
 const fshd = `void main() {
     gl_FragColor = vec4(0.5, 0.3 + 0.3 * sin(gl_FragCoord.x / 15.0), 0.3 + 0.3 * sin(gl_FragCoord.y / 10.0), 1.0);

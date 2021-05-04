@@ -2,7 +2,7 @@
 <meta charset="UTF-8">
 
 <body>
-    <div id="app">
+    <div id="app" style="background-color: #444444; width: 600px; height: 200px">
         <svg width="600" height="200">
             <defs>
                 <marker id="arrow" markerUnits="strokeWidth" markerWidth="10" markerHeight="10"  refX="5" refY="5" viewBox="0 0 10 10">
@@ -10,12 +10,12 @@
                 </marker>
             </defs>
             <edge
-                v-for="edge in edges"
+                v-for="edge in edgeViews"
                 v-bind:key="edge.key"
                 v-bind:prop="edge"
             />
             <node
-                v-for="node in nodes"
+                v-for="node in nodeViews"
                 v-bind:key="node.key"
                 v-bind:prop="node"
                 v-on:mousedown="node.mousedown($event)"

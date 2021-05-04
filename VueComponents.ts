@@ -7,11 +7,35 @@ export module kzkmComponent
         Vue.component('port', {
             props: ['prop', 'baseX', 'baseY'],
             template: '\
-                <g>\
-                <circle\
-                    :cx="prop.cx + baseX" :cy="prop.cy + baseY" :r="prop.r"\
-                />\
-                </g>'
+                <component\
+                    v-bind:is="prop.isLinked ? \'LinkedPort\' : \'UnlinkedPort\'"\
+                    v-bind:prop="prop"\
+                    v-bind:baseX="baseX"\
+                    v-bind:baseY="baseY"\
+                    v-on:mousedown="prop.mousedown($event)"\
+                />'
+        });
+        Vue.component('UnlinkedPort', {
+            props: ['prop', 'baseX', 'baseY'],
+            template: '\
+            <g>\
+            <rect\
+                :x="prop.cx + baseX - prop.r" :y="prop.cy + baseY - prop.r"\
+                :width="prop.r * 2" :height="prop.r * 2"\
+                fill="red"\
+                v-on:mousedown="$emit(\'mousedown\', $event)"\
+            />\
+            </g>'
+        });
+        Vue.component('LinkedPort', {
+            props: ['prop', 'baseX', 'baseY'],
+            template: '\
+            <g>\
+            <circle\
+                :cx="prop.cx + baseX" :cy="prop.cy + baseY" :r="prop.r"\
+                fill="black"\
+            />\
+            </g>'
         });
         Vue.component('node', {
             props: ['prop'],
