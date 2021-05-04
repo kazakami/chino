@@ -47,7 +47,6 @@ export module kzkmComponent
                     :width="prop.width" :height="prop.height"\
                     :style="prop.style"\
                     v-on:mousedown="$emit(\'mousedown\', $event)"\
-                    v-on:mousemove="$emit(\'mousemove\', $event)"\
                     v-on:mouseup="$emit(\'mouseup\', $event)"\
                 />\
                 <text :x="prop.x+5" :y="prop.y + 20" fill="white" pointer-events="none">\

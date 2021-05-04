@@ -208,6 +208,22 @@ export module kzkm
     {
         public inputPorts: PortView[] = [];
         public outputPorts: PortView[] = [];
+        dragging = (e: MouseEvent) => {
+            var deltaX = e.clientX - this.prevClientX;
+            var deltaY = e.clientY - this.prevClientY;
+            this.x += deltaX;
+            this.y += deltaY;
+            this.prevClientX = e.clientX;
+            this.prevClientY = e.clientY;
+            this.node?.inputEdges.flat().forEach(edge =>
+            {
+                edge.edgeView?.UpdatePathData();
+            });
+            this.node?.outputEdges.flat().forEach(edge =>
+            {
+                edge.edgeView?.UpdatePathData();
+            });
+        };
         constructor(
             public node: Node | null,
             public id: number,
@@ -248,33 +264,12 @@ export module kzkm
             this.onMouseDownCallback(this.id);
             this.prevClientX = e.clientX;
             this.prevClientY = e.clientY;
-            this.dragging = true;
+            document.getElementById("app").addEventListener("mousemove", this.dragging)
         };
         public mouseup = (e: MouseEvent) =>
         {
-            this.dragging = false;
+            document.getElementById("app").removeEventListener("mousemove", this.dragging)
         };
-        public mousemove = (e: MouseEvent) =>
-        {
-            if (this.dragging)
-            {
-                var deltaX = e.clientX - this.prevClientX;
-                var deltaY = e.clientY - this.prevClientY;
-                this.x += deltaX;
-                this.y += deltaY;
-                this.prevClientX = e.clientX;
-                this.prevClientY = e.clientY;
-                this.node?.inputEdges.flat().forEach(edge =>
-                {
-                    edge.edgeView?.UpdatePathData();
-                });
-                this.node?.outputEdges.flat().forEach(edge =>
-                {
-                    edge.edgeView?.UpdatePathData();
-                });
-            }
-        };
-        private dragging: boolean = false;
         private prevClientX: number = 0;
         private prevClientY: number = 0;
     }
