@@ -75,6 +75,7 @@ function AddNode(node: kzkm.Node)
 const glCoordButton = document.getElementById("glCoord");
 const constButton = document.getElementById("const");
 const binOpeButton = document.getElementById("binOpe");
+const vec2to4Button = document.getElementById("vec2to4");
 glCoordButton.onclick = () => {
     AddNode(new kzkm.FragCoordNode());
 };
@@ -83,6 +84,9 @@ constButton.onclick = () => {
 };
 binOpeButton.onclick = () => {
     AddNode(new kzkm.BinOpeNode("+"));
+};
+vec2to4Button.onclick = () => {
+    AddNode(new kzkm.Vec2to4Node("x", "y", 0, 1));
 };
 
 var app = new Vue({
@@ -146,6 +150,7 @@ function Sort(nodes: kzkm.Node[], edges: kzkm.Edge[]): number[]
         sortedNodes.push(n);
         nodeDatas[n].output.forEach(edgeId => {
             var m = edgeDatas[edgeId].sink;
+            delete edgeDatas[edgeId];
             for (var key in nodeDatas)
             {
                 nodeDatas[key].input = nodeDatas[key].input.filter(n => n != edgeId);
@@ -157,6 +162,7 @@ function Sort(nodes: kzkm.Node[], edges: kzkm.Edge[]): number[]
             }
         });
     }
+    console.log(Object.keys(edgeDatas).length);
     return sortedNodes;
 }
 
@@ -185,7 +191,6 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
     var code = "void main(){\n";
     
     const linkedGraph = GetLinkedNodes(nodes, edges);
-    console.log(linkedGraph);
     for (var nodeId of Sort(linkedGraph[0], linkedGraph[1]))
     {
         var node = nodes.filter(n => n.id == nodeId)[0]
@@ -210,6 +215,27 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
             var input0 = node.inputEdges[0][0].sourceNode;
             var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
             code += `gl_FragColor = variable_${ input0.id }_${ input0Port };\n`;
+        }
+        else if (node instanceof kzkm.Vec2to4Node)
+        {
+            var input0 = node.inputEdges[0][0].sourceNode;
+            var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
+            var x: string;
+            var y: string;
+            var z: string;
+            var w: string;
+            // swizzle か数値かで分岐
+            const toData = (input: string | number) => {
+                if (typeof input === 'number' || isFinite(input as any))
+                    return input.toString();
+                else
+                    return `variable_${ input0.id }_${ input0Port }.${ input }`;
+            }
+            x = toData(node.x);
+            y = toData(node.y);
+            z = toData(node.z);
+            w = toData(node.w);
+            code += `vec4 variable_${ node.id }_0 = vec4(${x}, ${y}, ${z}, ${w});\n`;
         }
     };
     code += "}";

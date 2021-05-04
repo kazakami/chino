@@ -123,7 +123,21 @@ export module kzkmComponent
                 <div>\
                     <p>Node id: {{ prop.id }}</p>\
                     <p>Description: {{ prop.Description() }}</p>\
-                    type is vec4\
+                    type is vec2\
+                </div>\
+            '
+        });
+        Vue.component('node-editor-Vec2to4Node', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    vec2 to vec4\
+                    <input v-model="prop.x"/>\
+                    <input v-model="prop.y"/>\
+                    <input v-model="prop.z"/>\
+                    <input v-model="prop.w"/>\
                 </div>\
             '
         });

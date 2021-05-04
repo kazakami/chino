@@ -4,10 +4,29 @@ export module kzkm
 {
     export enum VarType
     {
+        bool,
+        float,
         vec2,
         vec3,
         vec4,
+        mat2,
+        mat3,
+        mat4,
+        sampler2D,
         err,
+    }
+    export function SwizzleToIndex(key: string)
+    {
+        if (key === "x" || key === "r" || key === "s")
+            return 0;
+        else if (key === "y" || key === "g" || key === "t")
+            return 1;
+        else if (key === "z" || key === "b" || key === "p")
+            return 2;
+        else if (key === "w" || key === "a" || key === "q")
+            return 3;
+        else
+            return -1;
     }
     var nodeId = 0;
     export class Node
@@ -16,12 +35,16 @@ export module kzkm
         public id: number;
         public inputEdges: Edge[][] = [];
         public outputEdges: Edge[][] = [];
-        constructor(public inputCount: number, public outputCount: number)
+        public inputCount: number;
+        public outputCount: number;
+        constructor(public inputTypes: VarType[], public outputTypes: VarType[])
         {
+            this.inputCount = inputTypes.length;
+            this.outputCount = outputTypes.length;
             this.id = nodeId++;
-            for (var i = 0; i < inputCount; i++)
+            for (var i = 0; i < this.inputCount; i++)
                 this.inputEdges.push([]);
-            for (var i = 0; i < outputCount; i++)
+            for (var i = 0; i < this.outputCount; i++)
                 this.outputEdges.push([]);
         }
         public Description(): string
@@ -34,7 +57,7 @@ export module kzkm
     {
         constructor()
         {
-            super(1, 0);
+            super([VarType.vec4], []);
         }
         public Description()
         {
@@ -47,7 +70,7 @@ export module kzkm
         
         constructor(public ope: string)
         {
-            super (2, 1);
+            super ([VarType.vec4, VarType.vec4], [VarType.vec4]);
         }
         public Description()
         {
@@ -59,7 +82,7 @@ export module kzkm
     {
         constructor(public value: [number, number, number, number])
         {
-            super(0, 1);
+            super([], [VarType.vec4]);
         }
         public Description()
         {
@@ -68,11 +91,27 @@ export module kzkm
         }
     }
 
+    export class Vec2to4Node extends Node
+    {
+        constructor(
+            public x: string | number,
+            public y: string | number,
+            public z: string | number,
+            public w: string | number)
+        {
+            super([VarType.vec2], [VarType.vec4]);
+        }
+        public Description()
+        {
+            return "Vec2 to Vec4";
+        }
+    }
+
     export class FragCoordNode extends Node
     {
         constructor()
         {
-            super(0, 1);
+            super([], [VarType.vec2]);
         }
         public Description()
         {
@@ -171,9 +210,25 @@ export module kzkm
             var edges: Edge[] = vueInstance.$data.edges;
             var edgeViews: EdgeView[] = vueInstance.$data.edgeViews;
             if (editingEdge instanceof EditingEdgeViewSourcing)
+            {
+                if (startPort.nodeView.node.outputTypes[startPort.portNumber] !== nearestPortView.nodeView.node.inputTypes[nearestPortView.portNumber])
+                {
+                    editingEdge = null;
+                    console.log("Type mismatch");
+                    return;
+                }
                 var edge = new Edge(startPort.nodeView.node, startPort.portNumber, nearestPortView.nodeView.node, nearestPortView.portNumber);
+            }
             else
+            {
+                if (startPort.nodeView.node.inputTypes[startPort.portNumber] !== nearestPortView.nodeView.node.outputTypes[nearestPortView.portNumber])
+                {
+                    editingEdge = null;
+                    console.log("Type mismatch");
+                    return;
+                }
                 var edge = new Edge(nearestPortView.nodeView.node, nearestPortView.portNumber, startPort.nodeView.node, startPort.portNumber);
+            }
             editingEdge = null;
             startPort.isLinked = true;
             nearestPortView.isLinked = true;
