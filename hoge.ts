@@ -104,7 +104,7 @@ document.getElementById("app").oncontextmenu = () => { return false; };
 kzkm.SetEditor(app);
 
 
-function Sort(nodes :kzkm.Node[], edges: kzkm.Edge[]): number[]
+function Sort(nodes: kzkm.Node[], edges: kzkm.Edge[]): number[]
 {
     type NodeData = 
     {
@@ -135,11 +135,12 @@ function Sort(nodes :kzkm.Node[], edges: kzkm.Edge[]): number[]
     var edgeDatas: { [index: number]: EdgeData; } = {};
     edges.forEach(e => edgeDatas[e.id] = MakeEdgeData(e));
     var sortedNodes: number[] = [];
+    // 入力が無い状態のノード
     var frontNodes: number[] =
         nodes.filter(n => n.inputEdges.flat().length == 0)
              .map(n => n.id);
 
-    while (frontNodes.length != 0)
+    while (frontNodes.length !== 0)
     {
         var n = frontNodes.pop();
         sortedNodes.push(n);
@@ -159,10 +160,33 @@ function Sort(nodes :kzkm.Node[], edges: kzkm.Edge[]): number[]
     return sortedNodes;
 }
 
+// outputnode から連結なノードのみ取り出す
+function GetLinkedNodes(nodes: kzkm.Node[], edges: kzkm.Edge[]): [kzkm.Node[], kzkm.Edge[]]
+{
+    const outputNode = nodes.filter(n => n instanceof kzkm.OutputNode)[0];
+    var linkedNodes: kzkm.Node[] = [outputNode];
+    var linkedEdges: kzkm.Edge[] = [];
+    // これから見ていく対象のノード
+    var targetNodes: kzkm.Node[] = [outputNode];
+    while (targetNodes.length !== 0)
+    {
+        const targetNode = targetNodes.pop();
+        const targetEdges: kzkm.Edge[] = targetNode.inputEdges.flat();
+        linkedEdges = linkedEdges.concat(targetEdges);
+        const foundNode = targetEdges.map(e => e.sourceNode);
+        targetNodes = targetNodes.concat(foundNode);
+        linkedNodes = linkedNodes.concat(foundNode);
+    }
+    return [linkedNodes, linkedEdges];
+}
+
 function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
 {
     var code = "void main(){\n";
-    for (var nodeId of Sort(nodes, edges))
+    
+    const linkedGraph = GetLinkedNodes(nodes, edges);
+    console.log(linkedGraph);
+    for (var nodeId of Sort(linkedGraph[0], linkedGraph[1]))
     {
         var node = nodes.filter(n => n.id == nodeId)[0]
         if (node instanceof kzkm.ConstantNode)
