@@ -1,40 +1,51 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="style.css">
 
 <body>
-    <div id="app" style="background-color: #444444; width: 600px; height: 200px">
-        <svg width="600" height="200">
-            <defs>
-                <marker id="arrow" markerUnits="strokeWidth" markerWidth="10" markerHeight="10"  refX="5" refY="5" viewBox="0 0 10 10">
-                    <polygon points="0,0 2,5 0,10 10,5"></polygon>
-                </marker>
-            </defs>
-            <edge
-                v-for="edge in edgeViews"
-                v-bind:key="edge.key"
-                v-bind:prop="edge"
-                v-on:click="edge.click"
-            />
-            <node
-                v-for="node in nodeViews"
-                v-bind:key="node.key"
-                v-bind:prop="node"
-                v-on:mousedown="node.mousedown($event)"
-                v-on:mouseup="node.mouseup($event)"
-            />
-        </svg>
+    <div class="left">
+        <div id="app">
+            <svg width="100%" height="400px">
+                <defs>
+                    <marker id="arrow" markerUnits="strokeWidth" markerWidth="10" markerHeight="10"  refX="5" refY="5" viewBox="0 0 10 10">
+                        <polygon points="0,0 2,5 0,10 10,5"></polygon>
+                    </marker>
+                </defs>
+                <edge
+                    v-bind:selected_id="selectedEdgeId"
+                    v-for="edge in edgeViews"
+                    v-bind:key="edge.key"
+                    v-bind:prop="edge"
+                    v-on:click="edge.click"
+                />
+                <node
+                    v-for="node in nodeViews"
+                    v-bind:key="node.key"
+                    v-bind:prop="node"
+                    v-on:mousedown="node.mousedown($event)"
+                    v-on:mouseup="node.mouseup($event)"
+                />
+            </svg>
+        </div>
+        <div class="node_adder">
+            <button type="button" id="glCoord">gl_Coord</button>
+            <button type="button" id="const">Const</button>
+            <button type="button" id="binOpe">Bin Ope</button>
+            <button type="button" id="vec2to4">Vec2to4</button>
+            <button type="button" id="vec2toFloats">Vec2toFloats</button>
+            <button type="button" id="floatstoVec2">FloatstoVec2</button>
+            <button type="button" id="sin">Sin</button>
+        </div>
+        <div id="screen"></div>
     </div>
-    <button type="button" id="glCoord">Add gl_Coord</button>
-    <button type="button" id="const">Add Constant</button>
-    <button type="button" id="binOpe">Add Bin Operator</button>
-    <button type="button" id="vec2to4">Add vec2to4</button>
-    <div id="screen"></div>
-    <div id="app3">
-        <component v-bind:is="editor" v-bind:prop="node"/>
-    </div>
-    <div id="app2">
-        <div>{{ code }}</div>
-        <button v-on:click="generate">code generate</button>
+    <div class="right">
+        <div id="app3">
+            <component v-bind:is="editor" v-bind:prop="node"/>
+        </div>
+        <div id="app2">
+            <button v-on:click="generate">code generate</button>
+            <div>{{ code }}</div>
+        </div>
     </div>
     <script src="dist/hoge.js"></script>
 </body>

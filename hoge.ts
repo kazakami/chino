@@ -48,14 +48,20 @@ var nodes: kzkm.Node[] =
     // new kzkm.FragCoordNode(),
     // new kzkm.BinOpeNode("+"),
     new kzkm.OutputNode(),
+    // new kzkm.Vec2to4Node("x", "y", 0.0, 1.0),
+    // new kzkm.FloatstoVec2Node(),
+    // new kzkm.Vec2toFloatsNode(),
+    // new kzkm.FragCoordNode(),
 ];
 var selectedNodeIndex = 0;
 
 var edges: kzkm.Edge[] =
 [
-    // new kzkm.Edge(nodes[0], 0, nodes[2], 0),
-    // new kzkm.Edge(nodes[1], 0, nodes[2], 1),
-    // new kzkm.Edge(nodes[2], 0, nodes[3], 0),
+    // new kzkm.Edge(nodes[1], 0, nodes[0], 0),
+    // new kzkm.Edge(nodes[2], 0, nodes[1], 0),
+    // new kzkm.Edge(nodes[3], 0, nodes[2], 0),
+    // new kzkm.Edge(nodes[3], 1, nodes[2], 1),
+    // new kzkm.Edge(nodes[4], 0, nodes[3], 0),
 ];
 
 var nodeViews = nodes.map((element, index) => {
@@ -76,6 +82,9 @@ const glCoordButton = document.getElementById("glCoord");
 const constButton = document.getElementById("const");
 const binOpeButton = document.getElementById("binOpe");
 const vec2to4Button = document.getElementById("vec2to4");
+const vec2toFloatsButton = document.getElementById("vec2toFloats");
+const floatstoVec2Button = document.getElementById("floatstoVec2");
+const sinButton = document.getElementById("sin");
 glCoordButton.onclick = () => {
     AddNode(new kzkm.FragCoordNode());
 };
@@ -88,6 +97,15 @@ binOpeButton.onclick = () => {
 vec2to4Button.onclick = () => {
     AddNode(new kzkm.Vec2to4Node("x", "y", 0, 1));
 };
+vec2toFloatsButton.onclick = () => {
+    AddNode(new kzkm.Vec2toFloatsNode());
+};
+floatstoVec2Button.onclick = () => {
+    AddNode(new kzkm.FloatstoVec2Node());
+};
+sinButton.onclick = () => {
+    AddNode(new kzkm.SinNode());
+};
 
 var app = new Vue({
     el: '#app',
@@ -96,6 +114,7 @@ var app = new Vue({
         edgeViews: edgeViews,
         nodes: nodes,
         edges: edges,
+        selectedEdgeId: -1,
     },
     methods:
     {
@@ -110,6 +129,7 @@ kzkm.SetEditor(app);
 
 function Sort(nodes: kzkm.Node[], edges: kzkm.Edge[]): number[]
 {
+    console.log(nodes);
     type NodeData = 
     {
         input: number[],
@@ -161,9 +181,22 @@ function Sort(nodes: kzkm.Node[], edges: kzkm.Edge[]): number[]
                 frontNodes.push(m);
             }
         });
+        delete nodeDatas[n];
     }
-    console.log(Object.keys(edgeDatas).length);
+    //console.log(sortedNodes);
+    //console.log(Object.keys(edgeDatas).length);
     return sortedNodes;
+}
+
+function UniqueNodes(nodes: kzkm.Node[])
+{
+    var uniquedNodes: kzkm.Node[] = [];
+    for (var node of nodes)
+    {
+        if (uniquedNodes.filter(n => n.id === node.id).length === 0)
+            uniquedNodes.push(node);
+    }
+    return uniquedNodes;
 }
 
 // outputnode から連結なノードのみ取り出す
@@ -179,9 +212,10 @@ function GetLinkedNodes(nodes: kzkm.Node[], edges: kzkm.Edge[]): [kzkm.Node[], k
         const targetNode = targetNodes.pop();
         const targetEdges: kzkm.Edge[] = targetNode.inputEdges.flat();
         linkedEdges = linkedEdges.concat(targetEdges);
-        const foundNode = targetEdges.map(e => e.sourceNode);
-        targetNodes = targetNodes.concat(foundNode);
-        linkedNodes = linkedNodes.concat(foundNode);
+        const foundNodes = targetEdges.map(e => e.sourceNode);
+        const uniquedFoundNodes = UniqueNodes(foundNodes);
+        targetNodes = UniqueNodes(targetNodes.concat(uniquedFoundNodes));
+        linkedNodes = UniqueNodes(linkedNodes.concat(uniquedFoundNodes));
     }
     return [linkedNodes, linkedEdges];
 }
@@ -208,7 +242,7 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
         }
         else if (node instanceof kzkm.FragCoordNode)
         {
-            code += `vec4 variable_${ node.id }_0 = vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0);\n`;
+            code += `vec2 variable_${ node.id }_0 = vec2(gl_FragCoord.x, gl_FragCoord.y);\n`;
         }
         else if (node instanceof kzkm.OutputNode)
         {
@@ -236,6 +270,27 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
             z = toData(node.z);
             w = toData(node.w);
             code += `vec4 variable_${ node.id }_0 = vec4(${x}, ${y}, ${z}, ${w});\n`;
+        }
+        else if (node instanceof kzkm.Vec2toFloatsNode)
+        {
+            var input0 = node.inputEdges[0][0].sourceNode;
+            var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
+            code += `float variable_${ node.id }_0 = variable_${ input0.id }_${ input0Port }.x;\n`;
+            code += `float variable_${ node.id }_1 = variable_${ input0.id }_${ input0Port }.y;\n`;
+        }
+        else if (node instanceof kzkm.FloatstoVec2Node)
+        {
+            var input0 = node.inputEdges[0][0].sourceNode;
+            var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
+            var input1 = node.inputEdges[1][0].sourceNode;
+            var input1Port = node.inputEdges[1][0].sourceNodeOutputIndex;
+            code += `vec2 variable_${ node.id }_0 = vec2(variable_${ input0.id }_${input0Port}, variable_${ input1.id }_${ input1Port });\n`;
+        }
+        else if (node instanceof kzkm.SinNode)
+        {
+            var input0 = node.inputEdges[0][0].sourceNode;
+            var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
+            code += `float variable_${ node.id }_0 = float(${ node.Amp }) * sin(float(${ node.AngFreq }) * variable_${ input0.id }_${ input0Port } - float(${ node.Phase }));\n`;
         }
     };
     code += "}";
@@ -293,6 +348,13 @@ var ballUnit = new Ball();
 
 class InitScene extends nene.Scene
 {
+    resize = (e: UIEvent) => {
+        const screen = document.getElementById("screen");
+        const width = screen.clientWidth;
+        const height = screen.clientHeight;
+        this.core.ChangeScreenSize(width, height);
+        this.ResizeCanvas(width, height);
+    }
     public Init()
     {
         this.backgroundColor = new THREE.Color(0x123456);
@@ -309,6 +371,7 @@ class InitScene extends nene.Scene
         const loaclAxesHelper = new THREE.AxesHelper(100);
         loaclAxesHelper.name = "helper";
         this.scene.add(loaclAxesHelper);
+        window.addEventListener("resize", this.resize);
     }
     public Update()
     {
@@ -332,11 +395,12 @@ var app2 = new Vue({
  });
  
 
+const screen = document.getElementById("screen");
 nene.Start("init", new InitScene(),
     {
-        parent: document.getElementById("screen"),
-        screenSizeX: 320,
-        screenSizeY: 240
+        parent: screen,
+        screenSizeX: screen.clientWidth,
+        screenSizeY: screen.clientHeight,
     }
 )
 

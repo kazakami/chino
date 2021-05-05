@@ -107,6 +107,45 @@ export module kzkm
         }
     }
 
+    export class Vec2toFloatsNode extends Node
+    {
+        constructor()
+        {
+            super([VarType.vec2], [VarType.float, VarType.float]);
+        }
+        public Description()
+        {
+            return "Vec2 to floats";
+        }
+    }
+
+    export class FloatstoVec2Node extends Node
+    {
+        constructor()
+        {
+            super([VarType.float, VarType.float], [VarType.vec2]);
+        }
+        public Description()
+        {
+            return "Floats to vec2";
+        }
+    }
+
+    export class SinNode extends Node
+    {
+        public Amp: number = 1;
+        public AngFreq: number = 1;
+        public Phase: number = 0;
+        constructor()
+        {
+            super([VarType.float], [VarType.float]);
+        }
+        public Description()
+        {
+            return "sine";
+        }
+    }
+
     export class FragCoordNode extends Node
     {
         constructor()
@@ -243,6 +282,17 @@ export module kzkm
 
     class PortView
     {
+        private preventInitialUnset = false;
+        public unsetSelectedEdge = (e: MouseEvent) => {
+            if (this.preventInitialUnset)
+            {
+                this.preventInitialUnset = false;
+                return;
+            }
+            const app = document.getElementById("app");
+            vueInstance.$data.selectedEdgeId = -1;
+            app.removeEventListener("mousedown", this.unsetSelectedEdge);
+        };
         constructor(
             public id: string,
             public cx: number,
@@ -256,27 +306,42 @@ export module kzkm
         }
         public mousedown(e: MouseEvent)
         {
-            if (editingEdge === null && vueInstance !== null)
+            const app = document.getElementById("app");
+            if (this.isLinked)
             {
-                const app = document.getElementById("app");
-                preventInitialSetEdge = true;
-                app.addEventListener("mousemove", EditingEdgeMove, false);
-                app.addEventListener("mousedown", SetEdge, false);
-                startPort = this;
+                var edgeIds: number[];
                 if (this.directional === "output")
-                    editingEdge = new EditingEdgeViewSourcing(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                    edgeIds = this.nodeView.node.outputEdges[this.portNumber].map(e => e.id);
                 else
-                    editingEdge = new EditingEdgeViewSinking(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
-                editingEdge.Update(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
-                vueInstance.$data.edgeViews.push(editingEdge);
-                const nodes: NodeView[] = vueInstance.$data.nodeViews;
-                targetPorts = [];
-                for (const node of nodes)
+                    edgeIds = this.nodeView.node.inputEdges[this.portNumber].map(e => e.id);
+                console.log(edgeIds);
+                vueInstance.$data.selectedEdgeId =  edgeIds[0];
+                this.preventInitialUnset = true;
+                app.addEventListener("mousedown", this.unsetSelectedEdge);
+            }
+            else
+            {
+                if (editingEdge === null && vueInstance !== null)
                 {
+                    preventInitialSetEdge = true;
+                    app.addEventListener("mousemove", EditingEdgeMove, false);
+                    app.addEventListener("mousedown", SetEdge, false);
+                    startPort = this;
                     if (this.directional === "output")
-                        targetPorts = targetPorts.concat(node.inputPorts);
+                        editingEdge = new EditingEdgeViewSourcing(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
                     else
-                        targetPorts = targetPorts.concat(node.outputPorts);
+                        editingEdge = new EditingEdgeViewSinking(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                    editingEdge.Update(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
+                    vueInstance.$data.edgeViews.push(editingEdge);
+                    const nodes: NodeView[] = vueInstance.$data.nodeViews;
+                    targetPorts = [];
+                    for (const node of nodes)
+                    {
+                        if (this.directional === "output")
+                            targetPorts = targetPorts.concat(node.inputPorts);
+                        else
+                            targetPorts = targetPorts.concat(node.outputPorts);
+                    }
                 }
             }
         }

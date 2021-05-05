@@ -34,6 +34,7 @@ export module kzkmComponent
             <circle\
                 :cx="prop.cx + baseX" :cy="prop.cy + baseY" :r="prop.r"\
                 fill="black"\
+                v-on:mousedown="$emit(\'mousedown\', $event)"\
             />\
             </g>'
         });
@@ -69,13 +70,13 @@ export module kzkmComponent
                 </g>'
         });
         Vue.component('edge', {
-            props: ['prop'],
+            props: ['prop', 'selected_id'],
             template: '\
                 <path\
                     :d="prop.d"\
                     fill="none"\
-                    :stroke="prop.stroke"\
-                    stroke-width="2"\
+                    :stroke="(prop.edge !== null &&prop.edge.id === selected_id) ? \'red\' : prop.stroke"\
+                    :stroke-width="(prop.edge !== null &&prop.edge.id === selected_id) ? 4 : 2"\
                     marker-end="url(#arrow)"\
                     v-on:click="$emit(\'click\', $event)"\
                 />'
@@ -138,6 +139,39 @@ export module kzkmComponent
                     <input v-model="prop.y"/>\
                     <input v-model="prop.z"/>\
                     <input v-model="prop.w"/>\
+                </div>\
+            '
+        });
+        Vue.component('node-editor-Vec2toFloatsNode', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    vec2 to floats\
+                </div>\
+            '
+        });
+        Vue.component('node-editor-FloatstoVec2Node', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    floats to vec2\
+                </div>\
+            '
+        });
+        Vue.component('node-editor-SinNode', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    sin\
+                    <input v-model="prop.Amp"/>\
+                    <input v-model="prop.AngFreq"/>\
+                    <input v-model="prop.Phase"/>\
                 </div>\
             '
         });
