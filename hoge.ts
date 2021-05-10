@@ -52,11 +52,17 @@ var nodes: kzkm.Node[] =
     // new kzkm.FloatstoVec2Node(),
     // new kzkm.Vec2toFloatsNode(),
     // new kzkm.FragCoordNode(),
+    new kzkm.Texture2DNode(),
+    new kzkm.TextureNode(),
+    new kzkm.FragCoordNode(),
 ];
 var selectedNodeIndex = 0;
 
 var edges: kzkm.Edge[] =
 [
+    new kzkm.Edge(nodes[1], 0, nodes[0], 0),
+    new kzkm.Edge(nodes[2], 0, nodes[1], 0),
+    new kzkm.Edge(nodes[3], 0, nodes[1], 1),
     // new kzkm.Edge(nodes[1], 0, nodes[0], 0),
     // new kzkm.Edge(nodes[2], 0, nodes[1], 0),
     // new kzkm.Edge(nodes[3], 0, nodes[2], 0),
@@ -85,6 +91,8 @@ const vec2to4Button = document.getElementById("vec2to4");
 const vec2toFloatsButton = document.getElementById("vec2toFloats");
 const floatstoVec2Button = document.getElementById("floatstoVec2");
 const sinButton = document.getElementById("sin");
+const textureButton = document.getElementById("texture");
+const texture2DButton = document.getElementById("texture2D");
 glCoordButton.onclick = () => {
     AddNode(new kzkm.FragCoordNode());
 };
@@ -106,6 +114,13 @@ floatstoVec2Button.onclick = () => {
 sinButton.onclick = () => {
     AddNode(new kzkm.SinNode());
 };
+textureButton.onclick = () => {
+    AddNode(new kzkm.TextureNode());
+};
+texture2DButton.onclick = () => {
+    AddNode(new kzkm.Texture2DNode());
+};
+
 
 var app = new Vue({
     el: '#app',
@@ -220,11 +235,23 @@ function GetLinkedNodes(nodes: kzkm.Node[], edges: kzkm.Edge[]): [kzkm.Node[], k
     return [linkedNodes, linkedEdges];
 }
 
-function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
+function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[], shaderMat: THREE.ShaderMaterial): string
 {
-    var code = "void main(){\n";
-    
     const linkedGraph = GetLinkedNodes(nodes, edges);
+    var code = "";
+    const uniformNodes = linkedGraph[0].filter(n => n.useUniform);
+    for (const node of uniformNodes)
+    {
+        if (node instanceof kzkm.TextureNode)
+        {
+            shaderMat.uniforms[`texture_${ node.id }`] = new THREE.Uniform(node.texture);
+            console.log(shaderMat.uniforms.texture_2);
+            code += `uniform sampler2D texture_${ node.id };\n`;
+        }
+    }
+
+    code += "void main(){\n";
+    
     for (var nodeId of Sort(linkedGraph[0], linkedGraph[1]))
     {
         var node = nodes.filter(n => n.id == nodeId)[0]
@@ -242,7 +269,7 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
         }
         else if (node instanceof kzkm.FragCoordNode)
         {
-            code += `vec2 variable_${ node.id }_0 = vec2(gl_FragCoord.x, gl_FragCoord.y);\n`;
+            code += `vec2 variable_${ node.id }_0 = vec2(gl_FragCoord.x / 550.0, gl_FragCoord.y / 250.0);\n`;
         }
         else if (node instanceof kzkm.OutputNode)
         {
@@ -284,7 +311,7 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
             var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
             var input1 = node.inputEdges[1][0].sourceNode;
             var input1Port = node.inputEdges[1][0].sourceNodeOutputIndex;
-            code += `vec2 variable_${ node.id }_0 = vec2(variable_${ input0.id }_${input0Port}, variable_${ input1.id }_${ input1Port });\n`;
+            code += `vec2 variable_${ node.id }_0 = vec2(variable_${ input0.id }_${ input0Port }, variable_${ input1.id }_${ input1Port });\n`;
         }
         else if (node instanceof kzkm.SinNode)
         {
@@ -292,21 +319,62 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[]): string
             var input0Port = node.inputEdges[0][0].sourceNodeOutputIndex;
             code += `float variable_${ node.id }_0 = float(${ node.Amp }) * sin(float(${ node.AngFreq }) * variable_${ input0.id }_${ input0Port } - float(${ node.Phase }));\n`;
         }
+        else if (node instanceof kzkm.Texture2DNode)
+        {
+            var input0 = node.inputEdges[0][0].sourceNode;
+            var input1 = node.inputEdges[1][0].sourceNode;
+            var input1Port = node.inputEdges[1][0].sourceNodeOutputIndex;
+            code += `vec4 variable_${ node.id }_0 = texture2D(texture_${ input0.id }, variable_${ input1.id }_${ input1Port });\n`;
+        }
     };
     code += "}";
     console.log(code);
+    shaderMat.fragmentShader = code;
+    shaderMat.needsUpdate = true;
     return code;
 }
 
 
 var app3= new Vue({
-   el: '#app3',
-   data:
-   {
-       node: nodes[selectedNodeIndex],
-       editor: "node-editor-" + nodes[selectedNodeIndex].constructor.name,
-   },
-   methods: {}
+    el: '#app3',
+    data:
+    {
+        node: nodes[selectedNodeIndex],
+        editor: "node-editor-" + nodes[selectedNodeIndex].constructor.name,
+    },
+    methods: {
+        drop: function(e: DragEvent, node: kzkm.Node)
+        {
+            e.preventDefault();
+            // console.log(node);
+            if (!(node instanceof kzkm.TextureNode))
+                return;
+            // console.log(e);
+            // console.log(e.dataTransfer);
+            const files = e.dataTransfer.files;
+            if (files.length === 0)
+                return;
+            const file = files[0];
+            console.log(file);
+            const reader = new FileReader();
+            reader.onload = function(e)
+            {
+                node.img = document.createElement("img");
+                node.img.setAttribute("src", e.target.result as string);
+                //document.getElementById("app2").appendChild(node.img);
+                node.texture = new THREE.Texture(node.img);
+                node.texture.needsUpdate = true;
+                console.log(node.texture);
+                console.log(e);
+            };
+            reader.readAsDataURL(file);
+        },
+        dragover: function(e: DragEvent)
+        {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    }
 });
 
 function ChangeSelectedNode(index: number)
@@ -331,6 +399,10 @@ class Ball extends nene.Unit
     public shaderMat: THREE.ShaderMaterial = new THREE.ShaderMaterial({
         fragmentShader: fshd,
         vertexShader: vshd,
+        uniforms:
+        {
+            t: {value: new THREE.TextureLoader().load("tofu.jpg")}
+        }
     });
     public Init()
     {
@@ -348,6 +420,7 @@ var ballUnit = new Ball();
 
 class InitScene extends nene.Scene
 {
+    private cameraDistance = 15;
     resize = (e: UIEvent) => {
         const screen = document.getElementById("screen");
         const width = screen.clientWidth;
@@ -357,9 +430,10 @@ class InitScene extends nene.Scene
     }
     public Init()
     {
+        this.resize(null);
         this.backgroundColor = new THREE.Color(0x123456);
         this.AddUnit(ballUnit);
-        this.camera.position.set(15, 15, 15);
+        this.camera.position.set(this.cameraDistance, this.cameraDistance, this.cameraDistance);
         this.camera.lookAt(0, 0, 0);
         // ヘルパ追加
         const worldAxesHelper = new THREE.AxesHelper(100);
@@ -372,6 +446,17 @@ class InitScene extends nene.Scene
         loaclAxesHelper.name = "helper";
         this.scene.add(loaclAxesHelper);
         window.addEventListener("resize", this.resize);
+        this.onWheel = (e) =>
+        {
+            e.preventDefault();
+            if (e.deltaY > 0)
+                this.cameraDistance *= 1.1;
+            else
+                this.cameraDistance /= 1.1;
+            this.cameraDistance = nene.Clamp(this.cameraDistance, 2.8, 30);
+            this.camera.position.set(this.cameraDistance, this.cameraDistance, this.cameraDistance);
+        };
+        this.onContextmenu = (e) => { e.preventDefault(); };
     }
     public Update()
     {
@@ -387,9 +472,7 @@ var app2 = new Vue({
     {
         generate: function ()
         {
-            this.code = GenerateCode(nodes, edges);
-            ballUnit.shaderMat.fragmentShader = this.code;
-            ballUnit.shaderMat.needsUpdate = true;
+            this.code = GenerateCode(nodes, edges, ballUnit.shaderMat);
         }
     }
  });

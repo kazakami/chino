@@ -37,6 +37,7 @@ export module kzkm
         public outputEdges: Edge[][] = [];
         public inputCount: number;
         public outputCount: number;
+        public useUniform = false;
         constructor(public inputTypes: VarType[], public outputTypes: VarType[])
         {
             this.inputCount = inputTypes.length;
@@ -143,6 +144,33 @@ export module kzkm
         public Description()
         {
             return "sine";
+        }
+    }
+
+    export class TextureNode extends Node
+    {
+        public img: HTMLImageElement = null;
+        public texture: THREE.Texture = null;
+        constructor()
+        {
+            super([], [VarType.sampler2D]);
+            this.useUniform = true;
+        }
+        public Description()
+        {
+            return "Texture";
+        }
+    }
+
+    export class Texture2DNode extends Node
+    {
+        constructor()
+        {
+            super([VarType.sampler2D, VarType.vec2], [VarType.vec4]);
+        }
+        public Description()
+        {
+            return "Texture2D";
         }
     }
 

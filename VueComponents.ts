@@ -175,5 +175,28 @@ export module kzkmComponent
                 </div>\
             '
         });
+        Vue.component('node-editor-TextureNode', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    <div\
+                        style="width: 100px; height: 100px; background: black;"\
+                        v-on:drop="$emit(\'drop\', $event)"\
+                        v-on:dragover="$emit(\'dragover\', $event)">\
+                    </div>\
+                </div>\
+            '
+        });
+        Vue.component('node-editor-Texture2DNode', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                </div>\
+            '
+        });
     }
 }

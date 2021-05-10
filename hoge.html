@@ -28,19 +28,21 @@
             </svg>
         </div>
         <div class="node_adder">
-            <button type="button" id="glCoord">gl_Coord</button>
+            <button type="button" id="glCoord">Coord</button>
             <button type="button" id="const">Const</button>
-            <button type="button" id="binOpe">Bin Ope</button>
-            <button type="button" id="vec2to4">Vec2to4</button>
-            <button type="button" id="vec2toFloats">Vec2toFloats</button>
-            <button type="button" id="floatstoVec2">FloatstoVec2</button>
+            <button type="button" id="binOpe">BinOpe</button>
+            <button type="button" id="vec2to4">V2toV4</button>
+            <button type="button" id="vec2toFloats">V2toF</button>
+            <button type="button" id="floatstoVec2">FtoV2</button>
             <button type="button" id="sin">Sin</button>
+            <button type="button" id="texture">Tex</button>
+            <button type="button" id="texture2D">Tex2D</button>
         </div>
         <div id="screen"></div>
     </div>
     <div class="right">
         <div id="app3">
-            <component v-bind:is="editor" v-bind:prop="node"/>
+            <component v-bind:is="editor" v-bind:prop="node" v-on:drop="drop($event, node)" v-on:dragover="dragover($event)"/>
         </div>
         <div id="app2">
             <button v-on:click="generate">code generate</button>
