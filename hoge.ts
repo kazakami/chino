@@ -515,7 +515,124 @@ nene.Start("init", new InitScene(),
         screenSizeX: screen.clientWidth,
         screenSizeY: screen.clientHeight,
     }
-)
+);
+
+
+var peer: RTCPeerConnection;
+
+var rtcApp = new Vue({
+    el: '#rtc',
+    data:
+    {
+        toSend: '',
+        recieveData: '',
+        answerData: '',
+        logs: ''
+    },
+    methods:
+    {
+        recieve: async function ()
+        {
+            const answer = await recieveOffer(this.recieveData);
+            this.toSend = JSON.stringify(answer.sdp).slice(1, -1);
+        },
+        makeConnection: function ()
+        {
+            connect();
+        },
+        answer: async function ()
+        {
+            receiveAnswer(this.answerData);
+        },
+        viewPeer: function()
+        {
+            console.log(peer);
+        }
+    }
+});
+
+async function receiveAnswer(answerData: string)
+{
+    answerData = answerData.replace(/\\r\\n/g, "\r\n");
+    const answer = new RTCSessionDescription({
+        type: "answer",
+        sdp: answerData,
+    });
+    await peer.setRemoteDescription(answer);
+}
+
+async function recieveOffer(recieveData: string)
+{
+    recieveData = recieveData.replace(/\\r\\n/g, "\r\n");
+    //console.log(recieveData);
+    const offer = new RTCSessionDescription({
+        type: "offer",
+        sdp: recieveData,
+    });
+    console.log("new");
+    peer = new RTCPeerConnection(config);
+    const dataChannel = peer.createDataChannel("test");
+    dataChannel.onmessage = function(e)
+    {
+        console.log("r: ", e.data);
+    };
+    dataChannel.onopen = function()
+    {
+        console.log("open");
+    };
+    dataChannel.onclose = function()
+    {
+        console.log("close");
+    };
+
+    await peer.setRemoteDescription(offer);
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+    await waitVannilaIce(peer);
+
+    //console.log(peer.localDescription)
+    return peer.localDescription;
+}
+
+const config: RTCConfiguration = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    iceTransportPolicy: 'all'
+}
+
+
+const waitVannilaIce = p => {
+    return new Promise<void>(resolve => {
+        p.onicecandidate = ev => {
+            if (!ev.candidate) {
+                resolve()
+            }
+        }
+    });
+};
+async function connect()
+{
+    console.log("new");
+    peer = new RTCPeerConnection(config);
+    const dataChannel = peer.createDataChannel("test");
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    await waitVannilaIce(peer);
+    rtcApp.$data.toSend = JSON.stringify(peer.localDescription.sdp).slice(1, -1);
+
+    dataChannel.onmessage = function(e)
+    {
+        console.log("r: ", e.data);
+    };
+    dataChannel.onopen = function()
+    {
+        console.log("open");
+    };
+    dataChannel.onclose = function()
+    {
+        console.log("close");
+    };
+}
 
 // setInterval(() => { nodes[0].x += 1; }, 16);
 // setInterval(() => { edges[0].endY += 1; edges[0].SetD(); }, 16);

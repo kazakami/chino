@@ -49,6 +49,16 @@
             <button v-on:click="generate">code generate</button>
             <div>{{ code }}</div>
         </div>
+        <div id="rtc">
+            <button type="button" v-on:click="makeConnection">Make Connection</button>
+            <button type="button" v-on:click="viewPeer">viewPeer</button>
+            </br>
+            toSend<input v-model="toSend" readonly="readonly"/></br>
+            recieve<input v-model="recieveData"/>
+            <button type="button" v-on:click="recieve">recieve</button></br>
+            answer<input v-model="answerData"/>
+            <button type="button" v-on:click="answer">answer</button>
+        </div>
     </div>
     <script src="dist/hoge.js"></script>
 </body>
