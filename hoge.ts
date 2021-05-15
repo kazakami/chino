@@ -519,6 +519,7 @@ nene.Start("init", new InitScene(),
 
 
 var peer: RTCPeerConnection;
+var dataChannel: RTCDataChannel;
 
 var rtcApp = new Vue({
     el: '#rtc',
@@ -527,7 +528,11 @@ var rtcApp = new Vue({
         toSend: '',
         recieveData: '',
         answerData: '',
-        logs: ''
+        isHosting: false,
+        isJoining: false,
+        isConnected: false,
+        log: '',
+        chatLine: '',
     },
     methods:
     {
@@ -538,18 +543,38 @@ var rtcApp = new Vue({
         },
         makeConnection: function ()
         {
+            this.isHosting = true;
             connect();
+        },
+        joinConnection: function ()
+        {
+            this.isJoining = true;
         },
         answer: async function ()
         {
             receiveAnswer(this.answerData);
         },
-        viewPeer: function()
+        viewChannel: function()
         {
-            console.log(peer);
+            console.log("st: ", dataChannel);
+        },
+        submit: function()
+        {
+            dataChannel.send(this.chatLine);
+            this.log += "You: " + this.chatLine + "\n";
+            this.chatLine = "";
         }
     }
 });
+
+const dataChannelOption: RTCDataChannelInit =
+{
+    ordered: true,
+}
+const config: RTCConfiguration = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    iceTransportPolicy: 'all'
+}
 
 async function receiveAnswer(answerData: string)
 {
@@ -571,18 +596,33 @@ async function recieveOffer(recieveData: string)
     });
     console.log("new");
     peer = new RTCPeerConnection(config);
-    const dataChannel = peer.createDataChannel("test");
-    dataChannel.onmessage = function(e)
+    peer.onicecandidate = async function(e)
     {
-        console.log("r: ", e.data);
+        console.log("candidate");
+        await peer.addIceCandidate(e.candidate);
     };
-    dataChannel.onopen = function()
+    peer.ondatachannel = function(e)
     {
-        console.log("open");
-    };
-    dataChannel.onclose = function()
-    {
-        console.log("close");
+        dataChannel = e.channel;
+        dataChannel.onmessage = function(e)
+        {
+            // console.log("r: ", e.data);
+            rtcApp.$data.log += "Friend: " + e.data + "\n";
+        };
+        dataChannel.onopen = function()
+        {
+            // console.log("open");
+            // console.log(dataChannel.readyState);
+            rtcApp.$data.isConnected = true;
+        };
+        dataChannel.onclose = function()
+        {
+            console.log("close");
+        };
+        dataChannel.onerror = function(e)
+        {
+            console.log(e);
+        };
     };
 
     await peer.setRemoteDescription(offer);
@@ -594,10 +634,6 @@ async function recieveOffer(recieveData: string)
     return peer.localDescription;
 }
 
-const config: RTCConfiguration = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    iceTransportPolicy: 'all'
-}
 
 
 const waitVannilaIce = p => {
@@ -613,7 +649,12 @@ async function connect()
 {
     console.log("new");
     peer = new RTCPeerConnection(config);
-    const dataChannel = peer.createDataChannel("test");
+    peer.onicecandidate = async function(e)
+    {
+        console.log("candidate");
+        await peer.addIceCandidate(e.candidate);
+    };
+    dataChannel = peer.createDataChannel("test", dataChannelOption);
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
@@ -622,15 +663,23 @@ async function connect()
 
     dataChannel.onmessage = function(e)
     {
-        console.log("r: ", e.data);
+        // console.log("r: ", e.data);
+        rtcApp.$data.log += "Friend: " + e.data + "\n";
     };
     dataChannel.onopen = function()
     {
-        console.log("open");
+        // console.log("open");
+        // console.log(dataChannel.readyState);
+        // dataChannel.send("hogeeeee");
+        rtcApp.$data.isConnected = true;
     };
     dataChannel.onclose = function()
     {
         console.log("close");
+    };
+    dataChannel.onerror = function(e)
+    {
+        console.log(e);
     };
 }
 

@@ -50,14 +50,29 @@
             <div>{{ code }}</div>
         </div>
         <div id="rtc">
-            <button type="button" v-on:click="makeConnection">Make Connection</button>
-            <button type="button" v-on:click="viewPeer">viewPeer</button>
-            </br>
-            toSend<input v-model="toSend" readonly="readonly"/></br>
-            recieve<input v-model="recieveData"/>
-            <button type="button" v-on:click="recieve">recieve</button></br>
-            answer<input v-model="answerData"/>
-            <button type="button" v-on:click="answer">answer</button>
+            <!-- <button type="button" v-on:click="viewChannel">debug</button> -->
+            <div v-if="!isConnected">
+                <div v-if="!isHosting || !isJoining">
+                    <button type="button" v-on:click="makeConnection">New connection</button>
+                    <button type="button" v-on:click="joinConnection">Join connection</button>
+                </div>
+                <div v-if="isHosting || isJoining">
+                    toSend<input v-model="toSend" readonly="readonly"/>
+                </div>
+                <div v-if="isJoining">
+                    recieve<input v-model="recieveData"/>
+                    <button type="button" v-on:click="recieve">recieve</button>
+                </div>
+                <div v-if="isHosting">
+                    answer<input v-model="answerData"/>
+                    <button type="button" v-on:click="answer">answer</button>
+                </div>
+            </div>
+            <div v-if="isConnected">
+                {{ log }}
+                <br />
+                <input v-model="chatLine"/><button type="button" v-on:click="submit">Send</button>
+            </div>
         </div>
     </div>
     <script src="dist/hoge.js"></script>
