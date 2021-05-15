@@ -429,10 +429,6 @@ class Ball extends nene.Unit
     public shaderMat: THREE.ShaderMaterial = new THREE.ShaderMaterial({
         fragmentShader: fshd,
         vertexShader: vshd,
-        uniforms:
-        {
-            t: {value: new THREE.TextureLoader().load("tofu.jpg")}
-        }
     });
     public Init()
     {
