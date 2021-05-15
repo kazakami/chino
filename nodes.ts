@@ -187,6 +187,20 @@ export module kzkm
         }
     }
 
+    export class UniformFloatNode extends Node
+    {
+        public value = 0.0;
+        constructor()
+        {
+            super([], [VarType.float]);
+            this.useUniform = true;
+        }
+        public Description()
+        {
+            return "Uniform float";
+        }
+    }
+
     var edgeId = 0;
     export class Edge
     {

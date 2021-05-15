@@ -52,17 +52,18 @@ var nodes: kzkm.Node[] =
     // new kzkm.FloatstoVec2Node(),
     // new kzkm.Vec2toFloatsNode(),
     // new kzkm.FragCoordNode(),
-    new kzkm.Texture2DNode(),
-    new kzkm.TextureNode(),
-    new kzkm.FragCoordNode(),
+    // new kzkm.Texture2DNode(),
+    // new kzkm.TextureNode(),
+    // new kzkm.FragCoordNode(),
+    new kzkm.UniformFloatNode(),
 ];
 var selectedNodeIndex = 0;
 
 var edges: kzkm.Edge[] =
 [
-    new kzkm.Edge(nodes[1], 0, nodes[0], 0),
-    new kzkm.Edge(nodes[2], 0, nodes[1], 0),
-    new kzkm.Edge(nodes[3], 0, nodes[1], 1),
+    // new kzkm.Edge(nodes[1], 0, nodes[0], 0),
+    // new kzkm.Edge(nodes[2], 0, nodes[1], 0),
+    // new kzkm.Edge(nodes[3], 0, nodes[1], 1),
     // new kzkm.Edge(nodes[1], 0, nodes[0], 0),
     // new kzkm.Edge(nodes[2], 0, nodes[1], 0),
     // new kzkm.Edge(nodes[3], 0, nodes[2], 0),
@@ -93,6 +94,7 @@ const floatstoVec2Button = document.getElementById("floatstoVec2");
 const sinButton = document.getElementById("sin");
 const textureButton = document.getElementById("texture");
 const texture2DButton = document.getElementById("texture2D");
+const uniformFloatButton = document.getElementById("uniformFloat");
 glCoordButton.onclick = () => {
     AddNode(new kzkm.FragCoordNode());
 };
@@ -119,6 +121,9 @@ textureButton.onclick = () => {
 };
 texture2DButton.onclick = () => {
     AddNode(new kzkm.Texture2DNode());
+};
+uniformFloatButton.onclick = () => {
+    AddNode(new kzkm.UniformFloatNode());
 };
 
 
@@ -248,6 +253,11 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[], shaderMat: THREE.S
             console.log(shaderMat.uniforms.texture_2);
             code += `uniform sampler2D texture_${ node.id };\n`;
         }
+        else if (node instanceof kzkm.UniformFloatNode)
+        {
+            shaderMat.uniforms[`value_${ node.id }`] = new THREE.Uniform(node.value);
+            code += `uniform float value_${ node.id };\n`;
+        }
     }
 
     code += "void main(){\n";
@@ -326,6 +336,10 @@ function GenerateCode(nodes: kzkm.Node[], edges: kzkm.Edge[], shaderMat: THREE.S
             var input1Port = node.inputEdges[1][0].sourceNodeOutputIndex;
             code += `vec4 variable_${ node.id }_0 = texture2D(texture_${ input0.id }, variable_${ input1.id }_${ input1Port });\n`;
         }
+        else if (node instanceof kzkm.UniformFloatNode)
+        {
+            code += `float variable_${ node.id }_0 = value_${ node.id };\n`;
+        }
     };
     code += "}";
     console.log(code);
@@ -373,6 +387,22 @@ var app3= new Vue({
         {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
+        },
+        input: function(e: InputEvent, node: kzkm.Node)
+        {
+            //console.log(e);
+            // console.log((e.target as HTMLInputElement).value);
+            const value = Number((e.target as HTMLInputElement).value);
+            console.log(value);
+            if (!(node instanceof kzkm.UniformFloatNode))
+                return;
+            node.value = value;
+            const uniform = ballUnit.shaderMat.uniforms[`value_${ node.id }`];
+            if (uniform !== undefined)
+            {
+                uniform.value = value;
+                ballUnit.shaderMat.needsUpdate = true;
+            }
         }
     }
 });

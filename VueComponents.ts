@@ -198,5 +198,15 @@ export module kzkmComponent
                 </div>\
             '
         });
+        Vue.component('node-editor-UniformFloatNode', {
+            props: ['prop'],
+            template: '\
+                <div>\
+                    <p>Node id: {{ prop.id }}</p>\
+                    <p>Description: {{ prop.Description() }}</p>\
+                    <input type="range" min="0" max="1" step="0.001" v-on:input="$emit(\'input\', $event)"/>\
+                </div>\
+            '
+        });
     }
 }
