@@ -223,6 +223,11 @@ export module kzkm
     {
         vueInstance = instance;
     }
+    var dataChannel: RTCDataChannel = null;
+    export function SetDataChannel(dc: RTCDataChannel)
+    {
+        dataChannel = dc;
+    }
     var editingEdge: EditingEdgeView = null;
     var startPort: PortView;
     var targetPorts: PortView[];
@@ -299,6 +304,7 @@ export module kzkm
                     return;
                 }
                 var edge = new Edge(startPort.nodeView.node, startPort.portNumber, nearestPortView.nodeView.node, nearestPortView.portNumber);
+                dataChannel.send(`ope_AddEdge(${startPort.nodeView.node.id},${startPort.portNumber},${nearestPortView.nodeView.node.id},${nearestPortView.portNumber})`);
             }
             else
             {
@@ -309,6 +315,7 @@ export module kzkm
                     return;
                 }
                 var edge = new Edge(nearestPortView.nodeView.node, nearestPortView.portNumber, startPort.nodeView.node, startPort.portNumber);
+                dataChannel.send(`ope_AddEdge(${nearestPortView.nodeView.node.id},${nearestPortView.portNumber},${startPort.nodeView.node.id},${startPort.portNumber})`);
             }
             editingEdge = null;
             startPort.isLinked = true;

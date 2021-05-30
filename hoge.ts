@@ -55,7 +55,7 @@ var nodes: kzkm.Node[] =
     // new kzkm.Texture2DNode(),
     // new kzkm.TextureNode(),
     // new kzkm.FragCoordNode(),
-    new kzkm.UniformFloatNode(),
+    //new kzkm.UniformFloatNode(),
 ];
 var selectedNodeIndex = 0;
 
@@ -70,6 +70,11 @@ var edges: kzkm.Edge[] =
     // new kzkm.Edge(nodes[3], 1, nodes[2], 1),
     // new kzkm.Edge(nodes[4], 0, nodes[3], 0),
 ];
+
+function GetNodeFromId(id: number): kzkm.Node
+{
+    return nodes.filter(n => n.id === id)[0];
+}
 
 var nodeViews = nodes.map((element, index) => {
     return MakeNodeView(element, 50 + index *10, 60 + index * 10);
@@ -100,6 +105,7 @@ glCoordButton.onclick = () => {
 };
 constButton.onclick = () => {
     AddNode(new kzkm.ConstantNode([0.1, 0.2, 0.3, 1]));
+    dataChannel?.send("ope_AddConst");
 };
 binOpeButton.onclick = () => {
     AddNode(new kzkm.BinOpeNode("+"));
@@ -499,6 +505,7 @@ var app2 = new Vue({
         generate: function ()
         {
             this.code = GenerateCode(nodes, edges, ballUnit.shaderMat);
+            dataChannel?.send("ope_generate");
         }
     }
  });
@@ -582,15 +589,45 @@ async function receiveAnswer(answerData: string)
     await peer.setRemoteDescription(answer);
 }
 
+function operate(operation: string)
+{
+    const AddNodeRegExp = new RegExp('^ope_AddEdge\\((\\d+),(\\d+),(\\d+),(\\d+)\\)$');
+    const AddNodeRegExpMatch = AddNodeRegExp.exec(operation);
+    if (operation === "ope_generate")
+    {
+        app2.$data.code = GenerateCode(nodes, edges, ballUnit.shaderMat);
+    }
+    else if (operation === "ope_AddConst")
+    {
+        AddNode(new kzkm.ConstantNode([0.1, 0.2, 0.3, 1]));
+    }
+    else if (AddNodeRegExpMatch !== null)
+    {
+        const sourceNode = GetNodeFromId(Number(AddNodeRegExpMatch[1]));
+        const sourceNodePort = Number(AddNodeRegExpMatch[2]);
+        const sinkNode = GetNodeFromId(Number(AddNodeRegExpMatch[3]));
+        const sinkNodePort = Number(AddNodeRegExpMatch[4]);
+        var edge = new kzkm.Edge(sourceNode, sourceNodePort, sinkNode, sinkNodePort);
+        var edgeView = new kzkm.EdgeView(edge);
+        edgeView.stroke = "blue";
+        edgeView.UpdatePathData();
+        edge.edgeView = edgeView;
+        edges.push(edge);
+        edgeViews.push(edgeView);
+    }
+    else
+    {
+        console.log(operation);
+    }
+}
+
 async function recieveOffer(recieveData: string)
 {
     recieveData = recieveData.replace(/\\r\\n/g, "\r\n");
-    //console.log(recieveData);
     const offer = new RTCSessionDescription({
         type: "offer",
         sdp: recieveData,
     });
-    console.log("new");
     peer = new RTCPeerConnection(config);
     peer.onicecandidate = async function(e)
     {
@@ -600,15 +637,16 @@ async function recieveOffer(recieveData: string)
     peer.ondatachannel = function(e)
     {
         dataChannel = e.channel;
+        kzkm.SetDataChannel(dataChannel);
+        //rtcApp.$data.log += "lbl: " + dataChannel.label;
         dataChannel.onmessage = function(e)
         {
-            // console.log("r: ", e.data);
+            const data: string = e.data;
+            operate(data);
             rtcApp.$data.log += "Friend: " + e.data + "\n";
         };
         dataChannel.onopen = function()
         {
-            // console.log("open");
-            // console.log(dataChannel.readyState);
             rtcApp.$data.isConnected = true;
         };
         dataChannel.onclose = function()
@@ -643,7 +681,6 @@ const waitVannilaIce = p => {
 };
 async function connect()
 {
-    console.log("new");
     peer = new RTCPeerConnection(config);
     peer.onicecandidate = async function(e)
     {
@@ -651,6 +688,7 @@ async function connect()
         await peer.addIceCandidate(e.candidate);
     };
     dataChannel = peer.createDataChannel("test", dataChannelOption);
+    kzkm.SetDataChannel(dataChannel);
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
@@ -659,14 +697,12 @@ async function connect()
 
     dataChannel.onmessage = function(e)
     {
-        // console.log("r: ", e.data);
+        const data: string = e.data;
+        operate(data);
         rtcApp.$data.log += "Friend: " + e.data + "\n";
     };
     dataChannel.onopen = function()
     {
-        // console.log("open");
-        // console.log(dataChannel.readyState);
-        // dataChannel.send("hogeeeee");
         rtcApp.$data.isConnected = true;
     };
     dataChannel.onclose = function()
