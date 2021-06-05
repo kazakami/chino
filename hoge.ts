@@ -96,12 +96,10 @@ var nodeEditor= new Vue({
 document.getElementById("NodeEditor").oncontextmenu = () => { return false; };
 ViewModel.SetNodeEditorVueInstance(nodeEditor);
 
-
 function GetNodeFromId(id: number): Model.Node
 {
     return nodes.filter(n => n.id === id)[0];
 }
-
 
 function AddNode(node: Model.Node)
 {
@@ -124,7 +122,7 @@ glCoordButton.onclick = () => {
 };
 constButton.onclick = () => {
     AddNode(new Model.ConstantNode([0.1, 0.2, 0.3, 1]));
-    dataChannel?.send("ope_AddConst");
+    ViewModel.GetDataChannel()?.send("ope_AddConst");
 };
 binOpeButton.onclick = () => {
     AddNode(new Model.BinOpeNode("+"));
@@ -170,7 +168,6 @@ class Ball extends nene.Unit
         this.AddObject(this.ball);
     }
 }
-
 var ballUnit = new Ball();
 
 class InitScene extends nene.Scene
@@ -228,7 +225,7 @@ var app2 = new Vue({
         generate: function ()
         {
             this.code = GraphOperation.GenerateCode(nodes, edges, ballUnit.shaderMat);
-            dataChannel?.send("ope_generate");
+            ViewModel.GetDataChannel()?.send("ope_generate");
         }
     }
  });
@@ -243,9 +240,6 @@ nene.Start("init", new InitScene(),
     }
 );
 
-
-var peer: RTCPeerConnection;
-var dataChannel: RTCDataChannel;
 
 var rtcApp = new Vue({
     el: '#rtc',
@@ -282,11 +276,11 @@ var rtcApp = new Vue({
         },
         viewChannel: function()
         {
-            console.log("st: ", dataChannel);
+            console.log("st: ", ViewModel.GetDataChannel());
         },
         submit: function()
         {
-            dataChannel.send(this.chatLine);
+            ViewModel.GetDataChannel().send(this.chatLine);
             this.log += "You: " + this.chatLine + "\n";
             this.chatLine = "";
         }
@@ -296,21 +290,11 @@ var rtcApp = new Vue({
 const dataChannelOption: RTCDataChannelInit =
 {
     ordered: true,
-}
+};
 const config: RTCConfiguration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     iceTransportPolicy: 'all'
-}
-
-async function receiveAnswer(answerData: string)
-{
-    answerData = answerData.replace(/\\r\\n/g, "\r\n");
-    const answer = new RTCSessionDescription({
-        type: "answer",
-        sdp: answerData,
-    });
-    await peer.setRemoteDescription(answer);
-}
+};
 
 function operate(operation: string)
 {
@@ -343,6 +327,38 @@ function operate(operation: string)
     }
 }
 
+function SetUpDataChannel(dc: RTCDataChannel)
+{
+    dc.onmessage = function(e)
+    {
+        const data: string = e.data;
+        operate(data);
+        rtcApp.$data.log += "Friend: " + e.data + "\n";
+    };
+    dc.onopen = function()
+    {
+        rtcApp.$data.isConnected = true;
+    };
+    dc.onclose = function()
+    {
+        console.log("close");
+    };
+    dc.onerror = function(e)
+    {
+        console.log(e);
+    };
+}
+
+async function receiveAnswer(answerData: string)
+{
+    answerData = answerData.replace(/\\r\\n/g, "\r\n");
+    const answer = new RTCSessionDescription({
+        type: "answer",
+        sdp: answerData,
+    });
+    await ViewModel.GetPeerConnection().setRemoteDescription(answer);
+}
+
 async function recieveOffer(recieveData: string)
 {
     recieveData = recieveData.replace(/\\r\\n/g, "\r\n");
@@ -350,7 +366,8 @@ async function recieveOffer(recieveData: string)
         type: "offer",
         sdp: recieveData,
     });
-    peer = new RTCPeerConnection(config);
+    var peer = new RTCPeerConnection(config);
+    ViewModel.SetPeerConnection(peer);
     peer.onicecandidate = async function(e)
     {
         console.log("candidate");
@@ -358,39 +375,20 @@ async function recieveOffer(recieveData: string)
     };
     peer.ondatachannel = function(e)
     {
-        dataChannel = e.channel;
+        var dataChannel = e.channel;
         ViewModel.SetDataChannel(dataChannel);
-        dataChannel.onmessage = function(e)
-        {
-            const data: string = e.data;
-            operate(data);
-            rtcApp.$data.log += "Friend: " + e.data + "\n";
-        };
-        dataChannel.onopen = function()
-        {
-            rtcApp.$data.isConnected = true;
-        };
-        dataChannel.onclose = function()
-        {
-            console.log("close");
-        };
-        dataChannel.onerror = function(e)
-        {
-            console.log(e);
-        };
+        SetUpDataChannel(dataChannel);
     };
 
     await peer.setRemoteDescription(offer);
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
-    await waitVannilaIce(peer);
+    await waitIceCandidate(peer);
 
     return peer.localDescription;
 }
 
-
-
-function waitVannilaIce(peer: RTCPeerConnection) {
+function waitIceCandidate(peer: RTCPeerConnection) {
     return new Promise<void>(resolve => {
         peer.onicecandidate = ev => {
             if (!ev.candidate) {
@@ -398,41 +396,25 @@ function waitVannilaIce(peer: RTCPeerConnection) {
             }
         }
     });
-}
+};
+
 async function connect()
 {
-    peer = new RTCPeerConnection(config);
+    var peer = new RTCPeerConnection(config);
+    ViewModel.SetPeerConnection(peer);
     peer.onicecandidate = async function(e)
     {
         console.log("candidate");
         await peer.addIceCandidate(e.candidate);
     };
-    dataChannel = peer.createDataChannel("test", dataChannelOption);
+    var dataChannel = peer.createDataChannel("test", dataChannelOption);
     ViewModel.SetDataChannel(dataChannel);
+    SetUpDataChannel(dataChannel);
 
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
-    await waitVannilaIce(peer);
+    await waitIceCandidate(peer);
     rtcApp.$data.toSend = JSON.stringify(peer.localDescription.sdp).slice(1, -1);
-
-    dataChannel.onmessage = function(e)
-    {
-        const data: string = e.data;
-        operate(data);
-        rtcApp.$data.log += "Friend: " + e.data + "\n";
-    };
-    dataChannel.onopen = function()
-    {
-        rtcApp.$data.isConnected = true;
-    };
-    dataChannel.onclose = function()
-    {
-        console.log("close");
-    };
-    dataChannel.onerror = function(e)
-    {
-        console.log(e);
-    };
 }
 
 // setInterval(() => { nodes[0].x += 1; }, 16);
