@@ -4,7 +4,7 @@
 
 <body>
     <div class="left">
-        <div id="app">
+        <div id="GraphEditor">
             <svg width="100%" height="400px">
                 <defs>
                     <marker id="arrow" markerUnits="strokeWidth" markerWidth="10" markerHeight="10"  refX="5" refY="5" viewBox="0 0 10 10">
@@ -42,7 +42,7 @@
         <div id="screen"></div>
     </div>
     <div class="right">
-        <div id="app3">
+        <div id="NodeEditor">
             <component v-bind:is="editor" v-bind:prop="node" v-on:drop="drop($event, node)" v-on:dragover="dragover($event)" v-on:input="input($event, node)"/>
         </div>
         <div id="app2">

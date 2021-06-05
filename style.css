@@ -31,11 +31,7 @@ body {
     height: calc(100% - 24px - 400px);
 }
 
-#app {
+#GraphEditor {
     background-color: #444444;
     height: 400px;
-}
-
-#app3 {
-
 }
