@@ -8,15 +8,13 @@ export namespace ViewModel
         public graphEditorVueInstance: Vue = null;
         public nodeEditorVueInstance: Vue = null;
         public dataChannel: RTCDataChannel = null;
+        public peerConnection: RTCPeerConnection = null;
         public editingEdge: EditingEdgeView = null;
         public startPort: PortView;
         public targetPorts: PortView[];
         public graphEditorElement: HTMLElement = null;
         public nodeEditorElement: HTMLElement = null;
-        constructor()
-        {
-
-        }
+        constructor() {}
         public SearchNodeView(node: Model.Node)
         {
             const nodeViews: NodeView[] = this.graphEditorVueInstance.$data.nodeViews;
@@ -28,7 +26,15 @@ export namespace ViewModel
             return edgeViews.filter(e => e.edge.id === edge.id)[0];
         }
     }
-    var viewModel = new ViewModel()
+    var viewModel = new ViewModel();
+    export function GetDataChannel()
+    {
+        return viewModel.dataChannel;
+    }
+    export function GetPeerConnection()
+    {
+        return viewModel.peerConnection;
+    }
     export function SetGraphEditorVueInstance(instance: Vue)
     {
         viewModel.graphEditorVueInstance = instance;
@@ -42,6 +48,10 @@ export namespace ViewModel
     export function SetDataChannel(dc: RTCDataChannel)
     {
         viewModel.dataChannel = dc;
+    }
+    export function SetPeerConnection(peer: RTCPeerConnection)
+    {
+        viewModel.peerConnection = peer;
     }
     
     class PortView
@@ -137,8 +147,7 @@ export namespace ViewModel
             public ry: number,
             public width: number,
             public height: number,
-            public style: string,
-            public onMouseDownCallback: (id: number) => void)
+            public style: string)
         {
             if (node === null)
                 return;
@@ -165,13 +174,24 @@ export namespace ViewModel
         }
         public mousedown = (e: MouseEvent) =>
         {
-            this.onMouseDownCallback(this.id);
+            // 以前選択状態だったノードの表示を元に戻し、自身を選択状態表示にする
+            var nodeView: NodeView[] = viewModel.graphEditorVueInstance.$data.nodeViews;
+            const oldSelectedId = viewModel.graphEditorVueInstance.$data.selectedNodeId;
+            nodeView[oldSelectedId].style
+                = `fill:${GetNodeColor(nodeView[oldSelectedId].node)};stroke:black;stroke-width:2`;
+            viewModel.graphEditorVueInstance.$data.selectedNodeId = this.id;
+            viewModel.nodeEditorVueInstance.$data.node = this.node;
+            viewModel.nodeEditorVueInstance.$data.editor = "node-editor-" + this.node.constructor.name;
+            this.style
+                = `fill:${GetNodeColor(this.node)};stroke:red;stroke-width:4`;
+            // ドラッグアンドドロップ用の処理を追加
             this.prevClientX = e.clientX;
             this.prevClientY = e.clientY;
             viewModel.graphEditorElement.addEventListener("mousemove", this.dragging)
         };
         public mouseup = (e: MouseEvent) =>
         {
+            // ドラッグアンドドロップ用の処理を無効化
             viewModel.graphEditorElement.removeEventListener("mousemove", this.dragging)
         };
         private prevClientX: number = 0;
@@ -250,23 +270,10 @@ export namespace ViewModel
         }
         return color;
     }
-    function ChangeSelectedNode(index: number)
-    {
-        var nodeView: NodeView[] = viewModel.graphEditorVueInstance.$data.nodeViews;
-        const oldSelectedId = viewModel.graphEditorVueInstance.$data.selectedNodeId;
-
-        nodeView[oldSelectedId].style
-            = `fill:${GetNodeColor(nodeView[oldSelectedId].node)};stroke:black;stroke-width:2`;
-        viewModel.graphEditorVueInstance.$data.selectedNodeId = index;
-        viewModel.nodeEditorVueInstance.$data.node = viewModel.graphEditorVueInstance.$data.nodes[index];
-        viewModel.nodeEditorVueInstance.$data.editor = "node-editor-" + viewModel.graphEditorVueInstance.$data.nodes[index].constructor.name;
-        nodeView[index].style
-            = `fill:${GetNodeColor(nodeView[index].node)};stroke:red;stroke-width:4`;
-    }
     export function MakeNodeView(node: Model.Node, x: number, y: number): ViewModel.NodeView
     {
         var style = `fill:${GetNodeColor(node)};stroke:black;stroke-width:2`;
-        var nodeView = new NodeView(node, node.id, x, y, 5, 5, 120, 50, style, ChangeSelectedNode);
+        var nodeView = new NodeView(node, node.id, x, y, 5, 5, 120, 50, style);
         return nodeView;
     }
     export function MakeEdgeView(edge: Model.Edge): ViewModel.EdgeView
@@ -279,7 +286,7 @@ export namespace ViewModel
 
     abstract class EditingEdgeView extends EdgeView
     {
-        public abstract Update(x: number, y: number);
+        public abstract Update(x: number, y: number): void;
     }
     // ソースから伸びる
     class EditingEdgeViewSourcing extends EdgeView
@@ -329,6 +336,8 @@ export namespace ViewModel
                    + `T ${this.endX} ${this.endY}`;
         }
     }
+
+    // 指定した座標の近傍に PortView があればその中で最も近いものを返す
     function GetNearestTargetPort(x: number, y: number): PortView | null
     {
         type Position =
