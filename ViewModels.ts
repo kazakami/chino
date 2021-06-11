@@ -25,6 +25,14 @@ export namespace ViewModel
             const edgeViews: EdgeView[] = this.graphEditorVueInstance.$data.edgeViews;
             return edgeViews.filter(e => e.edge.id === edge.id)[0];
         }
+        public GetNodes(): Model.Node[]
+        {
+            return this.graphEditorVueInstance.$data.nodes;
+        }
+        public GetNodeViews(): NodeView[]
+        {
+            return this.graphEditorVueInstance.$data.nodeViews;
+        }
     }
     var viewModel = new ViewModel();
     export function GetDataChannel()
@@ -52,6 +60,12 @@ export namespace ViewModel
     export function SetPeerConnection(peer: RTCPeerConnection)
     {
         viewModel.peerConnection = peer;
+    }
+    export function AddNode(node: Model.Node)
+    {
+        const nodeView = MakeNodeView(node, 10, 20);
+        viewModel.GetNodes().push(node);
+        viewModel.GetNodeViews().push(nodeView);
     }
     
     class PortView
@@ -105,9 +119,8 @@ export namespace ViewModel
                         viewModel.editingEdge = new EditingEdgeViewSinking(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
                     viewModel.editingEdge.Update(this.nodeView.x + this.cx, this.nodeView.y + this.cy);
                     viewModel.graphEditorVueInstance.$data.edgeViews.push(viewModel.editingEdge);
-                    const nodes: NodeView[] = viewModel.graphEditorVueInstance.$data.nodeViews;
                     viewModel.targetPorts = [];
-                    for (const node of nodes)
+                    for (const node of viewModel.GetNodeViews())
                     {
                         if (this.directional === "output")
                             viewModel.targetPorts = viewModel.targetPorts.concat(node.inputPorts);
@@ -175,7 +188,7 @@ export namespace ViewModel
         public mousedown = (e: MouseEvent) =>
         {
             // 以前選択状態だったノードの表示を元に戻し、自身を選択状態表示にする
-            var nodeView: NodeView[] = viewModel.graphEditorVueInstance.$data.nodeViews;
+            var nodeView: NodeView[] = viewModel.GetNodeViews();
             const oldSelectedId = viewModel.graphEditorVueInstance.$data.selectedNodeId;
             nodeView[oldSelectedId].style
                 = `fill:${GetNodeColor(nodeView[oldSelectedId].node)};stroke:black;stroke-width:2`;

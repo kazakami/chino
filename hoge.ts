@@ -100,13 +100,6 @@ function GetNodeFromId(id: number): Model.Node
 {
     return nodes.filter(n => n.id === id)[0];
 }
-
-function AddNode(node: Model.Node)
-{
-    nodes.push(node);
-    nodeViews.push(ViewModel.MakeNodeView(node, 10, 20));
-}
-
 const glCoordButton = document.getElementById("glCoord");
 const constButton = document.getElementById("const");
 const binOpeButton = document.getElementById("binOpe");
@@ -118,35 +111,35 @@ const textureButton = document.getElementById("texture");
 const texture2DButton = document.getElementById("texture2D");
 const uniformFloatButton = document.getElementById("uniformFloat");
 glCoordButton.onclick = () => {
-    AddNode(new Model.FragCoordNode());
+    ViewModel.AddNode(new Model.FragCoordNode());
 };
 constButton.onclick = () => {
-    AddNode(new Model.ConstantNode([0.1, 0.2, 0.3, 1]));
+    ViewModel.AddNode(new Model.ConstantNode([0.1, 0.2, 0.3, 1]));
     ViewModel.GetDataChannel()?.send("ope_AddConst");
 };
 binOpeButton.onclick = () => {
-    AddNode(new Model.BinOpeNode("+"));
+    ViewModel.AddNode(new Model.BinOpeNode("+"));
 };
 vec2to4Button.onclick = () => {
-    AddNode(new Model.Vec2to4Node("x", "y", 0, 1));
+    ViewModel.AddNode(new Model.Vec2to4Node("x", "y", 0, 1));
 };
 vec2toFloatsButton.onclick = () => {
-    AddNode(new Model.Vec2toFloatsNode());
+    ViewModel.AddNode(new Model.Vec2toFloatsNode());
 };
 floatstoVec2Button.onclick = () => {
-    AddNode(new Model.FloatstoVec2Node());
+    ViewModel.AddNode(new Model.FloatstoVec2Node());
 };
 sinButton.onclick = () => {
-    AddNode(new Model.SinNode());
+    ViewModel.AddNode(new Model.SinNode());
 };
 textureButton.onclick = () => {
-    AddNode(new Model.TextureNode());
+    ViewModel.AddNode(new Model.TextureNode());
 };
 texture2DButton.onclick = () => {
-    AddNode(new Model.Texture2DNode());
+    ViewModel.AddNode(new Model.Texture2DNode());
 };
 uniformFloatButton.onclick = () => {
-    AddNode(new Model.UniformFloatNode());
+    ViewModel.AddNode(new Model.UniformFloatNode());
 };
 
 class Ball extends nene.Unit
@@ -306,7 +299,7 @@ function operate(operation: string)
     }
     else if (operation === "ope_AddConst")
     {
-        AddNode(new Model.ConstantNode([0.1, 0.2, 0.3, 1]));
+        ViewModel.AddNode(new Model.ConstantNode([0.1, 0.2, 0.3, 1]));
     }
     else if (AddNodeRegExpMatch !== null)
     {
